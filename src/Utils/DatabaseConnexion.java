@@ -14,7 +14,7 @@ import java.sql.Statement;
 public class DatabaseConnexion {
     // Constantes pour la connexion à la base de données
     private static final String JDBC_DRIVER = "com.mysql.cj.jdbc.Driver";
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/pressing_db";
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/pressing_d";
     private static final String USER = "root";
     private static final String PASSWORD = "";
 
