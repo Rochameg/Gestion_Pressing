@@ -1,5 +1,6 @@
 package View;
 
+import View.NouveauClientModal;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -441,18 +442,24 @@ public class DashboardView extends JFrame {
     }
 
     private JPanel createActionButtons() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        panel.setOpaque(false);
+    JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+    panel.setOpaque(false);
 
-        JButton newClientBtn = createModernButton("+ Nouveau Client", secondaryColor);
-        JButton reportBtn = createModernButton("/ Rapport", primaryColor); // Cet emoji peut aussi être remplacé par
-                                                                           // une icône si le bouton était une icône
+    JButton newClientBtn = createModernButton("+ Nouveau Client", secondaryColor);
+    JButton reportBtn = createModernButton("/ Rapport", primaryColor);
 
-        panel.add(newClientBtn);
-        panel.add(reportBtn);
+    // Ajoutez un écouteur d'événements au bouton "Nouveau Client"
+    newClientBtn.addActionListener(e -> {
+        NouveauClientModal modal = new NouveauClientModal(DashboardView.this);
+        modal.setVisible(true);
+    });
 
-        return panel;
-    }
+    panel.add(newClientBtn);
+    panel.add(reportBtn);
+
+    return panel;
+}
+
 
     private JButton createModernButton(String text, Color color) {
         JButton button = new JButton(text) {

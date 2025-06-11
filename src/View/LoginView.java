@@ -4,6 +4,12 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Arrays;
+import Utils.DatabaseConnection;
 
 public class LoginView extends JFrame {
 
@@ -274,7 +280,6 @@ public class LoginView extends JFrame {
         emailLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         emailField = createStyledTextField();
-        emailField.setText("test@gmail.com");
 
         JLabel passwordLabel = new JLabel("🔑 Mot de passe");
         passwordLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -283,7 +288,6 @@ public class LoginView extends JFrame {
         passwordLabel.setBorder(new EmptyBorder(25, 0, 8, 0));
 
         passwordField = createStyledPasswordField();
-        passwordField.setText("password");
 
         togglePasswordVisibilityButton = new JButton("👁️");
         togglePasswordVisibilityButton.setOpaque(false);
@@ -570,40 +574,58 @@ public class LoginView extends JFrame {
     }
 
     private void handleLogin() {
-        String email = emailField.getText().trim();
-        String password = new String(passwordField.getPassword());
-
-        if (email.isEmpty() || password.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                "Veuillez remplir tous les champs requis.",
-                "Informations manquantes",
-                JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        if (email.equals("test@gmail.com") && password.equals("password")) {
-            JOptionPane.showMessageDialog(this,
-                "Bienvenue dans votre espace royal !\nVous êtes maintenant connecté(e) à Pressing Royal.",
-                "Connexion réussie ✨",
-                JOptionPane.INFORMATION_MESSAGE);
-
-            System.out.println("Connexion réussie pour : " + email);
-
-            SwingUtilities.invokeLater(new Runnable() {
-                @Override
-                public void run() {
-                    new DashboardView().setVisible(true);
-                    dispose();
-                }
-            });
-        } else {
-            JOptionPane.showMessageDialog(this,
-                "Email ou mot de passe incorrect.\nVeuillez vérifier vos identifiants.",
-                "Erreur d'authentification",
-                JOptionPane.ERROR_MESSAGE);
-        }
+    String email = emailField.getText().trim();
+    char[] passwordChars = passwordField.getPassword();
+    String password = new String(passwordChars);
+    
+    if (email.isEmpty() || password.isEmpty()) {
+        JOptionPane.showMessageDialog(this,
+            "Veuillez remplir tous les champs requis.",
+            "Informations manquantes",
+            JOptionPane.WARNING_MESSAGE);
+        return;
     }
 
+    try (Connection connection = DatabaseConnection.getConnection()) {
+        String query = "SELECT * FROM users WHERE email = ? AND password = ?";
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, email);
+            statement.setString(2, password);
+            
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    // Authentification réussie
+                    JOptionPane.showMessageDialog(this,
+                        "Bienvenue dans votre espace royal !\nVous êtes maintenant connecté(e) à Pressing Royal.",
+                        "Connexion réussie ✨",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+                    System.out.println("Connexion réussie pour : " + email);
+
+                    SwingUtilities.invokeLater(() -> {
+                        new DashboardView().setVisible(true);
+                        dispose();
+                    });
+                } else {
+                    // Authentification échouée
+                    JOptionPane.showMessageDialog(this,
+                        "Email ou mot de passe incorrect.\nVeuillez vérifier vos identifiants.",
+                        "Erreur d'authentification",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(this,
+            "Erreur de connexion à la base de données.\nVeuillez réessayer plus tard.",
+            "Erreur technique",
+            JOptionPane.ERROR_MESSAGE);
+    } finally {
+        // Nettoyer le mot de passe en mémoire
+        Arrays.fill(passwordChars, '0');
+    }
+}
     public static void main(String[] args) {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -621,4 +643,3 @@ public class LoginView extends JFrame {
         });
     }
 }
-

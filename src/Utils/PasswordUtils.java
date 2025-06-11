@@ -1,13 +1,32 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-package Utils;
+package Utils ;
 
-/**
- *
- * @author Megui_rocha 🐶🐶..!!
- */
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 public class PasswordUtils {
-    
+
+    // Méthode pour hasher un mot de passe
+    public static String hashPassword(String password) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            md.update(password.getBytes());
+            byte[] byteData = md.digest();
+
+            // Convertir les bytes en hexadécimal
+            StringBuilder sb = new StringBuilder();
+            for (byte b : byteData) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // Méthode pour vérifier un mot de passe
+    public static boolean verifyPassword(String inputPassword, String storedHash) {
+        String hashedInput = hashPassword(inputPassword);
+        return hashedInput.equals(storedHash);
+    }
 }
