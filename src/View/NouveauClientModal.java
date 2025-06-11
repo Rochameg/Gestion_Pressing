@@ -6,6 +6,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
+import java.awt.geom.Rectangle2D;
 
 public class NouveauClientModal extends JDialog {
 
@@ -18,15 +19,20 @@ public class NouveauClientModal extends JDialog {
     private JCheckBox telephoneCheckBox;
 
     private boolean clientCree = false;
-    private Color primaryColor = new Color(67, 56, 202);
-    private Color accentColor = new Color(99, 102, 241);
-    private Color successColor = new Color(34, 197, 94);
-    private Color backgroundColor = new Color(248, 250, 252);
-    private Color cardColor = Color.WHITE;
-    private Color textColor = new Color(30, 41, 59);
+    
+    // Palette de couleurs moderne et sophistiquée
+    private Color primaryColor = new Color(99, 102, 241);      // Indigo vibrant
+    private Color accentColor = new Color(168, 85, 247);       // Violet
+    private Color successColor = new Color(34, 197, 94);       // Vert moderne
+    private Color errorColor = new Color(248, 113, 113);       // Rouge doux
+    private Color backgroundColor = new Color(15, 23, 42);     // Bleu nuit
+    private Color cardColor = new Color(30, 41, 59);           // Gris bleuté
+    private Color surfaceColor = new Color(51, 65, 85);        // Surface
+    private Color textColor = new Color(248, 250, 252);        // Blanc cassé
+    private Color subtleText = new Color(148, 163, 184);       // Gris subtil
 
     public NouveauClientModal(JFrame parent) {
-        super(parent, "Nouveau Client", true); // Modal bloquant
+        super(parent, "Nouveau Client", true);
         setUndecorated(true);
         getRootPane().setWindowDecorationStyle(JRootPane.NONE);
 
@@ -34,20 +40,21 @@ public class NouveauClientModal extends JDialog {
         setupLayout();
         setupEvents();
 
-        setSize(650, 700);
+        setSize(520, 640);
         setLocationRelativeTo(parent);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setResizable(false);
 
-        setShape(new RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), 20, 20));
+        // Forme arrondie avec des coins plus prononcés
+        setShape(new RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), 24, 24));
     }
 
     private void initComponents() {
         prenomField = createModernTextField("Prénom");
         nomField = createModernTextField("Nom");
-        emailField = createModernTextField("E-mail");
-        telephoneField = createModernTextField("Téléphone");
-        adresseField = createModernTextField("Adresse");
+        emailField = createModernTextField("votre@email.com");
+        telephoneField = createModernTextField("+33 6 12 34 56 78");
+        adresseField = createModernTextField("123 Rue de la Paix, Paris");
 
         emailCheckBox = createModernCheckBox();
         telephoneCheckBox = createModernCheckBox();
@@ -55,19 +62,40 @@ public class NouveauClientModal extends JDialog {
 
     private JTextField createModernTextField(String placeholder) {
         JTextField field = new JTextField() {
+            private boolean isHovered = false;
+            
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                g2.setColor(getBackground());
+                // Background avec glassmorphisme
+                if (hasFocus()) {
+                    // Effet de glow étendu
+                    for (int i = 8; i >= 0; i--) {
+                        g2.setColor(new Color(primaryColor.getRed(), primaryColor.getGreen(), primaryColor.getBlue(), 15 - i));
+                        g2.fillRoundRect(-i, -i, getWidth() + 2*i, getHeight() + 2*i, 12 + i, 12 + i);
+                    }
+                }
+
+                // Background principal
+                GradientPaint bgGradient = new GradientPaint(
+                    0, 0, isHovered ? surfaceColor.brighter() : surfaceColor,
+                    0, getHeight(), cardColor
+                );
+                g2.setPaint(bgGradient);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
 
+                // Bordure avec dégradé
                 if (hasFocus()) {
-                    g2.setColor(primaryColor);
+                    GradientPaint borderGradient = new GradientPaint(
+                        0, 0, primaryColor,
+                        getWidth(), getHeight(), accentColor
+                    );
+                    g2.setPaint(borderGradient);
                     g2.setStroke(new BasicStroke(2));
                 } else {
-                    g2.setColor(new Color(200, 200, 200));
+                    g2.setColor(new Color(71, 85, 105));
                     g2.setStroke(new BasicStroke(1));
                 }
                 g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 12, 12);
@@ -75,15 +103,21 @@ public class NouveauClientModal extends JDialog {
                 g2.dispose();
                 super.paintComponent(g);
             }
+            
+            public void setHovered(boolean hovered) {
+                this.isHovered = hovered;
+                repaint();
+            }
         };
 
-        field.setPreferredSize(new Dimension(250, 50));
+        field.setPreferredSize(new Dimension(220, 48));
         field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        field.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
-        field.setBackground(Color.WHITE);
-        field.setForeground(new Color(156, 163, 175));
+        field.setBorder(BorderFactory.createEmptyBorder(12, 18, 12, 18));
+        field.setBackground(new Color(0, 0, 0, 0)); // Transparent
+        field.setForeground(subtleText);
         field.setText(placeholder);
         field.setOpaque(false);
+        field.setCaretColor(primaryColor);
 
         field.addFocusListener(new java.awt.event.FocusAdapter() {
             public void focusGained(java.awt.event.FocusEvent evt) {
@@ -95,7 +129,7 @@ public class NouveauClientModal extends JDialog {
             }
             public void focusLost(java.awt.event.FocusEvent evt) {
                 if (field.getText().isEmpty()) {
-                    field.setForeground(new Color(156, 163, 175));
+                    field.setForeground(subtleText);
                     field.setText(placeholder);
                 }
                 field.repaint();
@@ -107,6 +141,8 @@ public class NouveauClientModal extends JDialog {
 
     private JCheckBox createModernCheckBox() {
         JCheckBox checkBox = new JCheckBox() {
+            private boolean isHovered = false;
+            
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -116,33 +152,50 @@ public class NouveauClientModal extends JDialog {
                 int x = (getWidth() - size) / 2;
                 int y = (getHeight() - size) / 2;
 
+                // Effet de glow si sélectionné
                 if (isSelected()) {
-                    g2.setColor(primaryColor);
+                    for (int i = 3; i >= 0; i--) {
+                        g2.setColor(new Color(primaryColor.getRed(), primaryColor.getGreen(), primaryColor.getBlue(), 40 - i*10));
+                        g2.fillRoundRect(x - i, y - i, size + 2*i, size + 2*i, 8 + i, 8 + i);
+                    }
+                }
+
+                // Background
+                if (isSelected()) {
+                    GradientPaint gradient = new GradientPaint(
+                        x, y, primaryColor,
+                        x + size, y + size, accentColor
+                    );
+                    g2.setPaint(gradient);
                 } else {
-                    g2.setColor(Color.WHITE);
+                    g2.setColor(isHovered ? surfaceColor.brighter() : surfaceColor);
                 }
                 g2.fillRoundRect(x, y, size, size, 6, 6);
 
-                g2.setColor(isSelected() ? primaryColor : new Color(200, 200, 200));
-                g2.setStroke(new BasicStroke(2));
+                // Bordure
+                g2.setColor(isSelected() ? primaryColor.brighter() : new Color(71, 85, 105));
+                g2.setStroke(new BasicStroke(1));
                 g2.drawRoundRect(x, y, size, size, 6, 6);
 
+                // Checkmark animé
                 if (isSelected()) {
                     g2.setColor(Color.WHITE);
-                    g2.setStroke(new BasicStroke(2, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                    int[] xPoints = {x + 5, x + 8, x + 15};
-                    int[] yPoints = {y + 10, y + 13, y + 7};
-                    for (int i = 0; i < xPoints.length - 1; i++) {
-                        g2.drawLine(xPoints[i], yPoints[i], xPoints[i + 1], yPoints[i + 1]);
-                    }
+                    g2.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                    g2.drawLine(x + 5, y + 10, x + 8, y + 13);
+                    g2.drawLine(x + 8, y + 13, x + 15, y + 6);
                 }
 
                 g2.dispose();
             }
+            
+            public void setHovered(boolean hovered) {
+                this.isHovered = hovered;
+                repaint();
+            }
         };
 
-        checkBox.setPreferredSize(new Dimension(30, 30));
-        checkBox.setBackground(cardColor);
+        checkBox.setPreferredSize(new Dimension(28, 28));
+        checkBox.setBackground(new Color(0, 0, 0, 0));
         checkBox.setFocusPainted(false);
         checkBox.setBorderPainted(false);
         checkBox.setOpaque(false);
@@ -154,29 +207,41 @@ public class NouveauClientModal extends JDialog {
         setLayout(new BorderLayout());
         getContentPane().setBackground(backgroundColor);
 
+        // Panel principal avec effet glassmorphisme
         JPanel mainPanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                g2.setColor(new Color(0, 0, 0, 10));
-                g2.fillRoundRect(5, 5, getWidth() - 10, getHeight() - 10, 20, 20);
+                // Ombre multiple pour plus de profondeur
+                for (int i = 12; i >= 0; i--) {
+                    g2.setColor(new Color(0, 0, 0, 8 - i/2));
+                    g2.fillRoundRect(6 + i, 6 + i, getWidth() - 12 - 2*i, getHeight() - 12 - 2*i, 24 - i, 24 - i);
+                }
 
-                g2.setColor(cardColor);
-                g2.fillRoundRect(0, 0, getWidth() - 10, getHeight() - 10, 20, 20);
+                // Background principal avec dégradé sophistiqué
+                GradientPaint mainGradient = new GradientPaint(
+                    0, 0, cardColor,
+                    0, getHeight(), backgroundColor.brighter()
+                );
+                g2.setPaint(mainGradient);
+                g2.fillRoundRect(6, 6, getWidth() - 12, getHeight() - 12, 20, 20);
+
+                // Bordure subtile
+                g2.setColor(new Color(71, 85, 105));
+                g2.setStroke(new BasicStroke(1));
+                g2.drawRoundRect(6, 6, getWidth() - 12, getHeight() - 12, 20, 20);
 
                 g2.dispose();
             }
         };
         mainPanel.setOpaque(false);
-        mainPanel.setLayout(new BorderLayout(0, 30));
-        mainPanel.setBorder(new EmptyBorder(40, 40, 40, 40));
+        mainPanel.setLayout(new BorderLayout());
+        mainPanel.setBorder(new EmptyBorder(25, 25, 25, 25));
 
         JPanel headerPanel = createHeaderPanel();
-
         JPanel formPanel = createFormPanel();
-
         JPanel buttonPanel = createButtonPanel();
 
         mainPanel.add(headerPanel, BorderLayout.NORTH);
@@ -187,24 +252,119 @@ public class NouveauClientModal extends JDialog {
     }
 
     private JPanel createHeaderPanel() {
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(primaryColor);
-        headerPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        JPanel headerPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        JLabel titleLabel = new JLabel("Nouveau Client", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
+                // Dégradé diagonal sophistiqué
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, primaryColor,
+                    getWidth(), getHeight(), accentColor
+                );
+                g2.setPaint(gradient);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+
+                // Overlay subtil pour plus de profondeur
+                g2.setColor(new Color(255, 255, 255, 10));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight()/2, 16, 16);
+
+                g2.dispose();
+            }
+        };
+        headerPanel.setLayout(new BorderLayout());
+        headerPanel.setBorder(new EmptyBorder(25, 30, 25, 30));
+        headerPanel.setPreferredSize(new Dimension(0, 80));
+
+        // Titre avec icône stylée
+        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 0));
+        titlePanel.setOpaque(false);
+        
+        // Icône personnalisée
+        JPanel iconPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Cercle avec dégradé
+                GradientPaint iconGradient = new GradientPaint(
+                    0, 0, Color.WHITE,
+                    getWidth(), getHeight(), new Color(255, 255, 255, 180)
+                );
+                g2.setPaint(iconGradient);
+                g2.fillOval(2, 2, getWidth()-4, getHeight()-4);
+                
+                // Icône utilisateur stylisée
+                g2.setColor(primaryColor);
+                g2.setStroke(new BasicStroke(2, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                // Tête
+                g2.drawOval(getWidth()/2 - 4, 8, 8, 8);
+                // Corps
+                g2.drawArc(getWidth()/2 - 8, 16, 16, 12, 0, 180);
+                
+                g2.dispose();
+            }
+        };
+        iconPanel.setPreferredSize(new Dimension(28, 28));
+        iconPanel.setOpaque(false);
+        
+        JLabel titleLabel = new JLabel("Nouveau Client");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
         titleLabel.setForeground(Color.WHITE);
+        
+        titlePanel.add(iconPanel);
+        titlePanel.add(titleLabel);
 
-        JButton closeButton = new JButton("X");
-        closeButton.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        closeButton.setForeground(Color.WHITE);
-        closeButton.setBackground(primaryColor);
-        closeButton.setBorder(BorderFactory.createEmptyBorder());
-        closeButton.setFocusPainted(false);
+        // Bouton fermer moderne avec effet hover
+        JButton closeButton = new JButton() {
+            private boolean isHovered = false;
+            
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                if (isHovered) {
+                    g2.setColor(new Color(255, 255, 255, 20));
+                    g2.fillOval(0, 0, getWidth(), getHeight());
+                }
+                
+                g2.setColor(Color.WHITE);
+                g2.setStroke(new BasicStroke(2, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                int margin = 8;
+                g2.drawLine(margin, margin, getWidth()-margin, getHeight()-margin);
+                g2.drawLine(getWidth()-margin, margin, margin, getHeight()-margin);
+                
+                g2.dispose();
+            }
+            
+            @Override
+            public void addNotify() {
+                super.addNotify();
+                addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseEntered(MouseEvent e) {
+                        isHovered = true;
+                        repaint();
+                    }
+                    @Override
+                    public void mouseExited(MouseEvent e) {
+                        isHovered = false;
+                        repaint();
+                    }
+                });
+            }
+        };
+        closeButton.setPreferredSize(new Dimension(32, 32));
         closeButton.setContentAreaFilled(false);
+        closeButton.setBorderPainted(false);
+        closeButton.setFocusPainted(false);
+        closeButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         closeButton.addActionListener(e -> dispose());
 
-        headerPanel.add(titleLabel, BorderLayout.CENTER);
+        headerPanel.add(titlePanel, BorderLayout.CENTER);
         headerPanel.add(closeButton, BorderLayout.EAST);
 
         return headerPanel;
@@ -212,8 +372,8 @@ public class NouveauClientModal extends JDialog {
 
     private JPanel createFormPanel() {
         JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBackground(cardColor);
-        formPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        formPanel.setBackground(new Color(0, 0, 0, 0));
+        formPanel.setBorder(new EmptyBorder(30, 30, 20, 30));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(8, 8, 8, 8);
@@ -222,23 +382,26 @@ public class NouveauClientModal extends JDialog {
 
         Font labelFont = new Font("Segoe UI", Font.PLAIN, 14);
 
+        // Prénom et Nom
         gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0.5;
-        formPanel.add(createLabel("Prénom", labelFont, textColor), gbc);
+        formPanel.add(createStyledLabel("Prénom *", labelFont), gbc);
         gbc.gridx = 1;
-        formPanel.add(createLabel("Nom", labelFont, textColor), gbc);
+        formPanel.add(createStyledLabel("Nom *", labelFont), gbc);
 
         gbc.gridx = 0; gbc.gridy = 1;
         formPanel.add(prenomField, gbc);
         gbc.gridx = 1;
         formPanel.add(nomField, gbc);
 
+        // Email
         gbc.gridy = 2; gbc.gridx = 0; gbc.gridwidth = 2;
-        JPanel emailPanel = createFieldPanel(emailCheckBox, "E-mail", labelFont);
+        JPanel emailPanel = createFieldPanel(emailCheckBox, "Email", labelFont);
         formPanel.add(emailPanel, gbc);
 
         gbc.gridy = 3;
         formPanel.add(emailField, gbc);
 
+        // Téléphone
         gbc.gridy = 4;
         JPanel telPanel = createFieldPanel(telephoneCheckBox, "Téléphone", labelFont);
         formPanel.add(telPanel, gbc);
@@ -246,10 +409,11 @@ public class NouveauClientModal extends JDialog {
         gbc.gridy = 5;
         formPanel.add(telephoneField, gbc);
 
-        gbc.gridy = 6; gbc.gridwidth = 1;
-        formPanel.add(createLabel("Adresse", labelFont, textColor), gbc);
+        // Adresse
+        gbc.gridy = 6;
+        formPanel.add(createStyledLabel("Adresse *", labelFont), gbc);
 
-        gbc.gridy = 7; gbc.gridwidth = 2;
+        gbc.gridy = 7;
         formPanel.add(adresseField, gbc);
 
         return formPanel;
@@ -257,19 +421,27 @@ public class NouveauClientModal extends JDialog {
 
     private JPanel createFieldPanel(JCheckBox checkBox, String labelText, Font font) {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        panel.setBackground(cardColor);
+        panel.setBackground(new Color(0, 0, 0, 0));
         panel.add(checkBox);
-        panel.add(createLabel(labelText, font, textColor));
+        
+        JLabel label = createStyledLabel(labelText, font);
+        panel.add(label);
+        
+        JLabel optLabel = new JLabel("(optionnel)");
+        optLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+        optLabel.setForeground(subtleText);
+        panel.add(optLabel);
+        
         return panel;
     }
 
     private JPanel createButtonPanel() {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
-        buttonPanel.setBackground(cardColor);
-        buttonPanel.setBorder(new EmptyBorder(20, 0, 20, 0));
+        buttonPanel.setBackground(new Color(0, 0, 0, 0));
+        buttonPanel.setBorder(new EmptyBorder(25, 0, 20, 0));
 
-        JButton cancelButton = createModernButton("Annuler", new Color(239, 68, 68), false);
-        JButton saveButton = createModernButton("Enregistrer", successColor, true);
+        JButton cancelButton = createModernButton("Annuler", errorColor, false);
+        JButton saveButton = createModernButton("Créer Client", successColor, true);
 
         buttonPanel.add(cancelButton);
         buttonPanel.add(saveButton);
@@ -281,18 +453,30 @@ public class NouveauClientModal extends JDialog {
     }
 
     private JButton createModernButton(String text, Color bgColor, boolean isPrimary) {
-        JButton button = new JButton(text) {
+        JButton button = new JButton() {
+            private boolean isHovered = false;
+            private boolean isPressed = false;
+            
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                Color currentBg = getModel().isPressed() ? bgColor.darker() :
-                                 getModel().isRollover() ? bgColor.brighter() : bgColor;
+                Color currentBg = isPressed ? bgColor.darker() :
+                                 isHovered ? bgColor.brighter() : bgColor;
 
+                // Effet de glow pour le bouton principal
+                if (isPrimary && (isHovered || isPressed)) {
+                    for (int i = 6; i >= 0; i--) {
+                        g2.setColor(new Color(currentBg.getRed(), currentBg.getGreen(), currentBg.getBlue(), 20 - i*3));
+                        g2.fillRoundRect(-i, -i, getWidth() + 2*i, getHeight() + 2*i, 12 + i, 12 + i);
+                    }
+                }
+
+                // Dégradé sophistiqué
                 if (isPrimary) {
                     GradientPaint gradient = new GradientPaint(
-                        0, 0, currentBg,
+                        0, 0, currentBg.brighter(),
                         0, getHeight(), currentBg.darker()
                     );
                     g2.setPaint(gradient);
@@ -302,18 +486,56 @@ public class NouveauClientModal extends JDialog {
 
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
 
-                g2.setColor(Color.WHITE);
+                // Highlight subtil en haut
+                if (isPrimary) {
+                    g2.setColor(new Color(255, 255, 255, 30));
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight()/3, 12, 12);
+                }
+
+                // Texte avec ombre
+                g2.setColor(new Color(0, 0, 0, 30));
                 g2.setFont(getFont());
                 FontMetrics fm = g2.getFontMetrics();
                 int textX = (getWidth() - fm.stringWidth(getText())) / 2;
                 int textY = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                g2.drawString(getText(), textX + 1, textY + 1);
+
+                g2.setColor(Color.WHITE);
                 g2.drawString(getText(), textX, textY);
 
                 g2.dispose();
             }
+            
+            @Override
+            public void addNotify() {
+                super.addNotify();
+                addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseEntered(MouseEvent e) {
+                        isHovered = true;
+                        repaint();
+                    }
+                    @Override
+                    public void mouseExited(MouseEvent e) {
+                        isHovered = false;
+                        repaint();
+                    }
+                    @Override
+                    public void mousePressed(MouseEvent e) {
+                        isPressed = true;
+                        repaint();
+                    }
+                    @Override
+                    public void mouseReleased(MouseEvent e) {
+                        isPressed = false;
+                        repaint();
+                    }
+                });
+            }
         };
 
-        button.setPreferredSize(new Dimension(140, 45));
+        button.setText(text);
+        button.setPreferredSize(new Dimension(isPrimary ? 130 : 100, 42));
         button.setFont(new Font("Segoe UI", Font.BOLD, 14));
         button.setForeground(Color.WHITE);
         button.setContentAreaFilled(false);
@@ -324,29 +546,60 @@ public class NouveauClientModal extends JDialog {
         return button;
     }
 
-    private JLabel createLabel(String text, Font font, Color color) {
+    private JLabel createStyledLabel(String text, Font font) {
         JLabel label = new JLabel(text);
         label.setFont(font);
-        label.setForeground(color);
+        label.setForeground(textColor);
+        label.setBorder(new EmptyBorder(0, 0, 8, 0));
         return label;
     }
 
     private void setupEvents() {
+        // Effets hover sophistiqués
         for (JTextField field : new JTextField[]{prenomField, nomField, emailField, telephoneField, adresseField}) {
             field.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseEntered(MouseEvent e) {
-                    if (!field.hasFocus()) {
-                        field.setBackground(new Color(249, 250, 251));
-                        field.repaint();
+                    if (field instanceof JTextField) {
+                        try {
+                            field.getClass().getMethod("setHovered", boolean.class).invoke(field, true);
+                        } catch (Exception ex) {
+                            // Fallback silencieux
+                        }
                     }
                 }
 
                 @Override
                 public void mouseExited(MouseEvent e) {
-                    if (!field.hasFocus()) {
-                        field.setBackground(Color.WHITE);
-                        field.repaint();
+                    if (field instanceof JTextField) {
+                        try {
+                            field.getClass().getMethod("setHovered", boolean.class).invoke(field, false);
+                        } catch (Exception ex) {
+                            // Fallback silencieux
+                        }
+                    }
+                }
+            });
+        }
+
+        // Effets hover pour les checkboxes
+        for (JCheckBox checkBox : new JCheckBox[]{emailCheckBox, telephoneCheckBox}) {
+            checkBox.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    try {
+                        checkBox.getClass().getMethod("setHovered", boolean.class).invoke(checkBox, true);
+                    } catch (Exception ex) {
+                        // Fallback silencieux
+                    }
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    try {
+                        checkBox.getClass().getMethod("setHovered", boolean.class).invoke(checkBox, false);
+                    } catch (Exception ex) {
+                        // Fallback silencieux
                     }
                 }
             });
@@ -356,9 +609,9 @@ public class NouveauClientModal extends JDialog {
     private void enregistrerClient() {
         if (isFieldEmpty(prenomField, "Prénom") ||
             isFieldEmpty(nomField, "Nom") ||
-            isFieldEmpty(emailField, "E-mail") ||
-            isFieldEmpty(telephoneField, "Téléphone") ||
-            isFieldEmpty(adresseField, "Adresse")) {
+            isFieldEmpty(emailField, "votre@email.com") ||
+            isFieldEmpty(telephoneField, "+33 6 12 34 56 78") ||
+            isFieldEmpty(adresseField, "123 Rue de la Paix, Paris")) {
 
             showModernDialog(
                 "Champs manquants",
@@ -371,8 +624,8 @@ public class NouveauClientModal extends JDialog {
         String email = emailField.getText().trim();
         if (!isValidEmail(email)) {
             showModernDialog(
-                "E-mail invalide",
-                "Veuillez saisir une adresse e-mail valide.",
+                "Email invalide",
+                "Veuillez saisir une adresse email valide.",
                 JOptionPane.WARNING_MESSAGE
             );
             return;
@@ -382,11 +635,11 @@ public class NouveauClientModal extends JDialog {
 
         showModernDialog(
             "Succès",
-            "Client créé avec succès !\n\n" +
-            "Nom: " + nomField.getText() + "\n" +
-            "Prénom: " + prenomField.getText() + "\n" +
-            "E-mail: " + emailField.getText() + "\n" +
-            "Téléphone: " + telephoneField.getText(),
+            "✨ Client créé avec succès !\n\n" +
+            "👤 " + prenomField.getText() + " " + nomField.getText() + "\n" +
+            "📧 " + emailField.getText() + "\n" +
+            "📱 " + telephoneField.getText() + "\n" +
+            "🏠 " + adresseField.getText(),
             JOptionPane.INFORMATION_MESSAGE
         );
 
@@ -421,16 +674,13 @@ public class NouveauClientModal extends JDialog {
                 e.printStackTrace();
             }
 
-            // Créer une frame parent invisible
             JFrame parentFrame = new JFrame();
             parentFrame.setUndecorated(true);
             parentFrame.setSize(0, 0);
             
-            // Créer et afficher le modal
             NouveauClientModal modal = new NouveauClientModal(parentFrame);
             modal.setVisible(true);
             
-            // Fermer l'application quand le modal est fermé
             System.exit(0);
         });
     }
