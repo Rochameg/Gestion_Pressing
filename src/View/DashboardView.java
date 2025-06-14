@@ -10,12 +10,17 @@ import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter; // Ajouté pour le format de la date
+import java.time.format.DateTimeFormatter;
 import javax.swing.table.DefaultTableModel;
 import modele.Client;
 import java.util.List;
-import java.util.ArrayList;
-
+import java.util.ArrayList; // Gardez si vous utilisez ailleurs, sinon supprimer
+import java.sql.Connection;
+// import java.sql.DriverManager; // Plus nécessaire directement ici
+import java.sql.SQLException; // Gardez si d'autres parties du code peuvent lancer SQLException
+import Utils.DatabaseConnection;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class DashboardView extends JFrame {
 
@@ -29,20 +34,39 @@ public class DashboardView extends JFrame {
     private final Color mutedText = new Color(148, 163, 184);
 
     private JLabel timeLabel;
-    private JLabel dateLabel; // Ajouté pour la mise à jour de la date
+    private JLabel dateLabel;
     private final JPanel mainContentPanel;
     private final CardLayout cardLayout;
 
     private JPanel selectedMenuItem = null;
     private final String[] menuLabels = { "Dashboard", "Clients", "Livraisons", "Stock", "Paramètres", "Rapports" };
 
-    // Référence au JLabel du titre principal pour le mettre à jour
     private JLabel mainHeaderTitleLabel;
-    private JLabel mainHeaderSubtitleLabel; // Ajouté pour le sous-titre
+    private JLabel mainHeaderSubtitleLabel;
+
+    private ClientDAO clientDAO; // Déclaré ici au niveau de la classe
 
     public DashboardView() {
+        // --- DÉBUT DES MODIFICATIONS DANS LE CONSTRUCTEUR ---
+        Connection connexion = null;
+        try {
+            connexion = DatabaseConnection.getConnection(); // Obtient la connexion
+        } catch (SQLException ex) {
+            Logger.getLogger(DashboardView.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        if (connexion != null) {
+            this.clientDAO = new ClientDAO(connexion); // Initialise clientDAO si la connexion est OK
+        } else {
+            // Gérer l'échec de la connexion ici
+            // Par exemple, afficher un message d'erreur et éventuellement désactiver des fonctionnalités
+            JOptionPane.showMessageDialog(this,
+                    "Impossible de se connecter à la base de données. Certaines fonctionnalités peuvent être limitées.",
+                    "Erreur de Connexion", JOptionPane.ERROR_MESSAGE);
+            this.clientDAO = null; // Assurez-vous que clientDAO est null en cas d'échec
+        }
+        // --- FIN DES MODIFICATIONS DANS LE CONSTRUCTEUR ---
+
         setTitle("RoyalPressing");
-        // Assurez-vous que le chemin vers votre icône de fenêtre est correct
         setIconImage(Toolkit.getDefaultToolkit()
                 .getImage(Objects.requireNonNull(getClass().getResource("/images/logo.png"))));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -60,7 +84,8 @@ public class DashboardView extends JFrame {
         mainContentPanel.setOpaque(false);
 
         mainContentPanel.add(createDashboardPanel(), menuLabels[0]);
-        mainContentPanel.add(createGenericContentPanel("Clients"), menuLabels[1]);
+        // createGenericContentPanel appellera createClientsPanel pour "Clients"
+        mainContentPanel.add(createGenericContentPanel("Clients"), menuLabels[1]); 
         mainContentPanel.add(createGenericContentPanel("Livraisons"), menuLabels[2]);
         mainContentPanel.add(createGenericContentPanel("Stock"), menuLabels[3]);
         mainContentPanel.add(createGenericContentPanel("Paramètres"), menuLabels[4]);
@@ -72,11 +97,10 @@ public class DashboardView extends JFrame {
         add(mainPanelContainer, BorderLayout.CENTER);
 
         startTimeUpdater();
-        startDateUpdater(); // Démarre la mise à jour de la date
+        startDateUpdater();
 
         setVisible(true);
 
-        // Sélectionne le tableau de bord par défaut au démarrage
         SwingUtilities.invokeLater(() -> {
             for (Component comp : sidePanel.getComponents()) {
                 if (comp instanceof JPanel && "NavigationPanel".equals(comp.getName())) {
@@ -90,7 +114,6 @@ public class DashboardView extends JFrame {
                                     String labelText = labelComp.getText();
                                     if (labelText != null && labelText.equals("Dashboard")) {
                                         updateSelection(item);
-                                        // Mise à jour du titre du header principal au démarrage
                                         updateMainHeaderTitle(menuLabels[0]);
                                         break;
                                     }
@@ -102,6 +125,56 @@ public class DashboardView extends JFrame {
             }
         });
     }
+
+    // --- Les autres méthodes sont inchangées jusqu'à createClientsPanel ---
+
+    private JPanel createClientsPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(false);
+
+        // --- DÉBUT DES MODIFICATIONS DANS createClientsPanel ---
+        // N'initialisez PAS la connexion ni le ClientDAO ici.
+        // Ils sont déjà initialisés dans le constructeur de DashboardView.
+
+        // Vérifiez si clientDAO est disponible
+        if (clientDAO == null) {
+            JLabel errorLabel = new JLabel("Données clients non disponibles: Problème de connexion à la base de données.", SwingConstants.CENTER);
+            errorLabel.setForeground(Color.RED);
+            errorLabel.setFont(new Font("Arial", Font.BOLD, 16));
+            panel.add(errorLabel, BorderLayout.CENTER);
+            return panel; // Retournez le panneau avec le message d'erreur
+        }
+
+        // Récupérez les clients depuis la base de données en utilisant l'instance existante de clientDAO
+        List<Client> clients = clientDAO.obtenirTousLesClients();
+        // --- FIN DES MODIFICATIONS DANS createClientsPanel ---
+
+        // Créez un modèle de table
+        String[] columnNames = { "ID", "Nom", "Prénom", "Téléphone", "Email", "Adresse" };
+        DefaultTableModel model = new DefaultTableModel(columnNames, 0);
+
+        // Remplissez le modèle avec les données des clients
+        for (Client client : clients) {
+            Object[] row = {
+                client.getId(),
+                client.getNom(),
+                client.getPrenom(),
+                client.getTelephone(),
+                client.getEmail(),
+                client.getAdresse()
+            };
+            model.addRow(row);
+        }
+
+        JTable table = new JTable(model);
+        JScrollPane scrollPane = new JScrollPane(table);
+
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    // ... (le reste de vos méthodes reste inchangé) ...
 
     private JPanel createModernSidePanel() {
         JPanel sidePanel = new JPanel() {
@@ -275,16 +348,14 @@ public class DashboardView extends JFrame {
 
         JLabel iconLabel;
         if (icon != null) {
-            iconLabel = new JLabel(icon); // Utilise l'ImageIcon fourni
+            iconLabel = new JLabel(icon);
         } else {
-            // Fallback si l'icône n'est pas trouvée (peut-être un espace vide ou un texte
-            // par défaut)
-            iconLabel = new JLabel(" "); // Un espace vide si aucune icône n'est trouvée
-            iconLabel.setPreferredSize(new Dimension(30, 30)); // Conserve la taille
+            iconLabel = new JLabel(" ");
+            iconLabel.setPreferredSize(new Dimension(30, 30));
         }
 
         iconLabel.setPreferredSize(new Dimension(30, 30));
-        iconLabel.setForeground(lightText); // La couleur du texte de l'icône si un texte est utilisé
+        iconLabel.setForeground(lightText);
 
         JLabel textLabel = new JLabel(label);
         textLabel.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -316,8 +387,8 @@ public class DashboardView extends JFrame {
             for (Component comp : selectedMenuItem.getComponents()) {
                 if (comp instanceof JLabel) {
                     JLabel labelComp = (JLabel) comp;
-                    if (labelComp.getIcon() == null) { // Si c'est le JLabel de texte (pas l'icône)
-                        labelComp.setForeground(lightText); // Rétablit la couleur du texte normal
+                    if (labelComp.getIcon() == null) {
+                        labelComp.setForeground(lightText);
                     }
                 }
             }
@@ -328,9 +399,8 @@ public class DashboardView extends JFrame {
         for (Component comp : selectedMenuItem.getComponents()) {
             if (comp instanceof JLabel) {
                 JLabel labelComp = (JLabel) comp;
-                if (labelComp.getIcon() == null) { // Si c'est le JLabel de texte
-                    labelComp.setForeground(Color.WHITE); // Définit la couleur du texte en blanc pour l'élément
-                                                          // sélectionné
+                if (labelComp.getIcon() == null) {
+                    labelComp.setForeground(Color.WHITE);
                 }
             }
         }
@@ -348,7 +418,7 @@ public class DashboardView extends JFrame {
         timeLabel.setForeground(secondaryColor);
         timeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        dateLabel = new JLabel(); // Initialisation du JLabel de date
+        dateLabel = new JLabel();
         dateLabel.setFont(new Font("Arial", Font.PLAIN, 12));
         dateLabel.setForeground(mutedText);
         dateLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -396,7 +466,7 @@ public class DashboardView extends JFrame {
         mainHeaderTitleLabel.setFont(new Font("Arial", Font.BOLD, 32));
         mainHeaderTitleLabel.setForeground(new Color(30, 41, 59));
 
-        mainHeaderSubtitleLabel = new JLabel(subtitle); // Initialisation du sous-titre
+        mainHeaderSubtitleLabel = new JLabel(subtitle);
         mainHeaderSubtitleLabel.setFont(new Font("Arial", Font.PLAIN, 16));
         mainHeaderSubtitleLabel.setForeground(new Color(100, 116, 139));
 
@@ -418,8 +488,7 @@ public class DashboardView extends JFrame {
 
         switch (menuLabel) {
             case "Dashboard":
-                title = " Tableau de Bord"; // Vous pouvez aussi remplacer cet emoji par un espace si vous utilisez
-                                            // des icônes images
+                title = " Tableau de Bord";
                 subtitle = "Vue d'ensemble de votre pressing moderne";
                 break;
             case "Clients":
@@ -444,28 +513,26 @@ public class DashboardView extends JFrame {
                 break;
         }
         mainHeaderTitleLabel.setText(title);
-        mainHeaderSubtitleLabel.setText(subtitle); // Mise à jour du sous-titre
+        mainHeaderSubtitleLabel.setText(subtitle);
     }
 
     private JPanel createActionButtons() {
-    JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-    panel.setOpaque(false);
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        panel.setOpaque(false);
 
-    JButton newClientBtn = createModernButton("+ Nouveau Client", secondaryColor);
-    JButton reportBtn = createModernButton("/ Rapport", primaryColor);
+        JButton newClientBtn = createModernButton("+ Nouveau Client", secondaryColor);
+        JButton reportBtn = createModernButton("/ Rapport", primaryColor);
 
-    // Ajoutez un écouteur d'événements au bouton "Nouveau Client"
-    newClientBtn.addActionListener(e -> {
-        NouveauClientModal modal = new NouveauClientModal(DashboardView.this);
-        modal.setVisible(true);
-    });
+        newClientBtn.addActionListener(e -> {
+            NouveauClientModal modal = new NouveauClientModal(DashboardView.this);
+            modal.setVisible(true);
+        });
 
-    panel.add(newClientBtn);
-    panel.add(reportBtn);
+        panel.add(newClientBtn);
+        panel.add(reportBtn);
 
-    return panel;
-}
-
+        return panel;
+    }
 
     private JButton createModernButton(String text, Color color) {
         JButton button = new JButton(text) {
@@ -481,7 +548,6 @@ public class DashboardView extends JFrame {
                 g2d.fillRoundRect(0, 0, getWidth(), getHeight() / 2, 12, 12);
                 g2d.dispose();
 
-                // Le texte du bouton est dessiné par-dessus la peinture
                 FontMetrics fm = g.getFontMetrics();
                 int x = (getWidth() - fm.stringWidth(getText())) / 2;
                 int y = (getHeight() + fm.getAscent()) / 2 - 2;
@@ -524,69 +590,33 @@ public class DashboardView extends JFrame {
         content.add(bottomPanel, BorderLayout.CENTER);
         return content;
     }
-    
+
     private JPanel createGenericContentPanel(String menuName) {
-    if (menuName.equals("Clients")) {
-        return createClientsPanel();
-    }
-       JPanel panel = new JPanel(new GridBagLayout());
+        if (menuName.equals("Clients")) {
+            return createClientsPanel();
+        }
+        JPanel panel = new JPanel(new GridBagLayout());
         panel.setOpaque(false);
         JLabel label = new JLabel("Contenu de la section : " + menuName);
         label.setFont(new Font("Arial", Font.BOLD, 30));
         label.setForeground(new Color(30, 41, 59));
         panel.add(label);
         return panel;
-    // ... reste du code existant
-}
-
-private JPanel createClientsPanel() {
-    JPanel panel = new JPanel(new BorderLayout());
-    panel.setOpaque(false);
-    
-    // Récupérez les clients depuis la base de données
-    ClientDAO clientDAO = new ClientDAO();
-    List<Client> clients = clientDAO.obtenirTousLesClients();
-    
-    // Créez un modèle de table
-    String[] columnNames = {"ID", "Nom", "Prénom", "Téléphone", "Email", "Adresse"};
-    DefaultTableModel model = new DefaultTableModel(columnNames, 0);
-    
-    for (Client client : clients) {
-        Object[] row = {
-            client.getId(),
-            client.getNom(),
-            client.getPrenom(),
-            client.getTelephone(),
-            client.getEmail(),
-            client.getAdresse()
-        };
-        model.addRow(row);
     }
-    
-    JTable table = new JTable(model);
-    JScrollPane scrollPane = new JScrollPane(table);
-    
-    panel.add(scrollPane, BorderLayout.CENTER);
-    
-    return panel;
-}
 
     private JPanel createModernStatsPanel() {
         JPanel statsPanel = new JPanel(new GridLayout(1, 4, 20, 0));
         statsPanel.setOpaque(false);
         statsPanel.setBorder(new EmptyBorder(0, 0, 30, 0));
 
-        // Remplacer les emojis par des chemins d'icônes si vous avez des icônes pour
-        // ces cartes
-        statsPanel.add(createModernStatCard("/images/clients_stat.png", "Clients Actifs", "156", secondaryColor)); // Exemple
-        statsPanel.add(createModernStatCard("/images/delivery_stat.png", "Livraisons", "23", primaryColor)); // Exemple
-        statsPanel.add(createModernStatCard("/images/revenue_stat.png", "Revenus", " 2,840 Fcfa", warningColor)); // Exemple
-        statsPanel.add(createModernStatCard("/images/stock_stat.png", "Stock", "89%", accentColor)); // Exemple
+        statsPanel.add(createModernStatCard("/images/clients_stat.png", "Clients Actifs", "156", secondaryColor));
+        statsPanel.add(createModernStatCard("/images/delivery_stat.png", "Livraisons", "23", primaryColor));
+        statsPanel.add(createModernStatCard("/images/revenue_stat.png", "Revenus", " 2,840 Fcfa", warningColor));
+        statsPanel.add(createModernStatCard("/images/stock_stat.png", "Stock", "89%", accentColor));
 
         return statsPanel;
     }
 
-    // Modification pour accepter un chemin d'icône pour les cartes de statistiques
     private JPanel createModernStatCard(String iconPath, String title, String value, Color accentColor) {
         JPanel card = new JPanel() {
             private boolean hovered = false;
@@ -630,13 +660,11 @@ private JPanel createClientsPanel() {
         JLabel iconLabel;
         try {
             ImageIcon originalIcon = new ImageIcon(Objects.requireNonNull(getClass().getResource(iconPath)));
-            Image scaledImage = originalIcon.getImage().getScaledInstance(24, 24, Image.SCALE_SMOOTH); // Taille pour
-                                                                                                       // les icônes de
-                                                                                                       // carte
+            Image scaledImage = originalIcon.getImage().getScaledInstance(24, 24, Image.SCALE_SMOOTH);
             iconLabel = new JLabel(new ImageIcon(scaledImage));
         } catch (Exception e) {
             System.err.println("Couldn't find stat card icon: " + iconPath + ". Using placeholder text.");
-            iconLabel = new JLabel("?"); // Fallback texte si l'image n'est pas trouvée
+            iconLabel = new JLabel("?");
             iconLabel.setFont(new Font("Arial", Font.BOLD, 24));
         }
 
@@ -700,11 +728,11 @@ private JPanel createClientsPanel() {
             public void run() {
                 SwingUtilities.invokeLater(() -> {
                     java.time.LocalDate today = java.time.LocalDate.now();
-                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEEE, dd MMMM yyyy");
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEEE, dd MMMM yyyy"); // Corrigé 'ాత్ర' en 'yyyy'
                     dateLabel.setText(today.format(formatter));
                 });
             }
-        }, 0, 60 * 1000); // Mise à jour toutes les minutes pour la date
+        }, 0, 60 * 1000);
     }
 
     public static void main(String[] args) {

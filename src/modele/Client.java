@@ -13,7 +13,7 @@ public class Client {
     // Constructeurs
     public Client() {}
 
-    public Client(String nom, String prenom, String telephone, String email, String adresse) {
+    public Client(int par, String nom, String prenom, String telephone, String email, String adresse) {
         this.nom = nom;
         this.prenom = prenom;
         this.telephone = telephone;

@@ -1,28 +1,31 @@
 package dao;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import modele.Client;
+// import Utils.DatabaseConnection; // Plus besoin d'importer directement ici si vous passez la connexion au constructeur
 
 public class ClientDAO {
     private Connection connexion;
-    private static final String URL = "jdbc:mysql://localhost:3306/royalpressing_base";
-    private static final String USER = "username";  // à remplacer par ton nom d'utilisateur
-    private static final String PASSWORD = "password";  // à remplacer par ton mot de passe
 
-    public ClientDAO() {
-        try {
-            connexion = DriverManager.getConnection(URL, USER, PASSWORD);
-        } catch (SQLException e) {
-            System.err.println("Erreur de connexion à la base de données : " + e.getMessage());
+    public ClientDAO(Connection connexion) {
+        if (connexion == null) {
+            throw new IllegalArgumentException("La connexion à la base de données ne peut pas être nulle.");
         }
+        this.connexion = connexion;
     }
 
-    // ✅ Méthode unique pour ajouter un client et récupérer son ID
+    /**
+     * Ajoute un nouveau client à la base de données.
+     * @param client L'objet Client à ajouter.
+     * @return L'ID généré du client si l'ajout est réussi, -1 sinon.
+     */
     public int ajouterClient(Client client) {
-        if (connexion == null) return -1;
-
         String sql = "INSERT INTO clients (nom, prenom, telephone, email, adresse) VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = connexion.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, client.getNom());
@@ -36,27 +39,33 @@ public class ClientDAO {
                 try (ResultSet rs = stmt.getGeneratedKeys()) {
                     if (rs.next()) {
                         int id = rs.getInt(1);
-                        client.setId(id); // si ton modèle Client a un setId
+                        client.setId(id); // Mettre à jour l'objet client avec l'ID généré
+                        System.out.println("Client ajouté avec succès. ID : " + id);
                         return id;
                     }
                 }
             }
         } catch (SQLException e) {
             System.err.println("Erreur lors de l'ajout du client : " + e.getMessage());
+            // Pour le débogage, il est souvent utile de laisser la trace complète
+            // e.printStackTrace();
         }
-        return -1; // Échec
+        return -1;
     }
 
+    /**
+     * Récupère tous les clients de la base de données.
+     * @return Une liste de tous les clients.
+     */
     public List<Client> obtenirTousLesClients() {
         List<Client> clients = new ArrayList<>();
-        if (connexion == null) return clients;
-
         String sql = "SELECT id, nom, prenom, telephone, email, adresse FROM clients";
         try (Statement statement = connexion.createStatement();
              ResultSet resultSet = statement.executeQuery(sql)) {
             while (resultSet.next()) {
                 Client client = new Client(
-                                        resultSet.getString("nom"),
+                    resultSet.getInt("id"),
+                    resultSet.getString("nom"),
                     resultSet.getString("prenom"),
                     resultSet.getString("telephone"),
                     resultSet.getString("email"),
@@ -65,35 +74,45 @@ public class ClientDAO {
                 clients.add(client);
             }
         } catch (SQLException e) {
-            System.err.println("Erreur lors de la récupération des clients : " + e.getMessage());
+            System.err.println("Erreur lors de la récupération de tous les clients : " + e.getMessage());
         }
         return clients;
     }
 
+    /**
+     * Récupère un client par son ID.
+     * @param id L'ID du client à récupérer.
+     * @return L'objet Client correspondant à l'ID, ou null si non trouvé.
+     */
     public Client obtenirClientParId(int id) {
         String sql = "SELECT * FROM clients WHERE id = ?";
         try (PreparedStatement statement = connexion.prepareStatement(sql)) {
             statement.setInt(1, id);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
-                    return new Client(
-                                                resultSet.getString("nom"),
+                    Client client = new Client(
+                        resultSet.getInt("id"),
+                        resultSet.getString("nom"),
                         resultSet.getString("prenom"),
                         resultSet.getString("telephone"),
                         resultSet.getString("email"),
                         resultSet.getString("adresse")
                     );
+                    return client;
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Erreur lors de la récupération du client : " + e.getMessage());
+            System.err.println("Erreur lors de la récupération du client par ID : " + e.getMessage());
         }
         return null;
     }
 
+    /**
+     * Modifie les informations d'un client existant.
+     * @param client L'objet Client avec les informations mises à jour (doit avoir un ID valide).
+     * @return true si la modification est réussie, false sinon.
+     */
     public boolean modifierClient(Client client) {
-        if (connexion == null) return false;
-
         String sql = "UPDATE clients SET nom = ?, prenom = ?, telephone = ?, email = ?, adresse = ? WHERE id = ?";
         try (PreparedStatement statement = connexion.prepareStatement(sql)) {
             statement.setString(1, client.getNom());
@@ -104,6 +123,7 @@ public class ClientDAO {
             statement.setInt(6, client.getId());
 
             int rowsUpdated = statement.executeUpdate();
+            System.out.println("Client avec ID " + client.getId() + " mis à jour. Lignes affectées : " + rowsUpdated);
             return rowsUpdated > 0;
         } catch (SQLException e) {
             System.err.println("Erreur lors de la modification du client : " + e.getMessage());
@@ -111,27 +131,21 @@ public class ClientDAO {
         }
     }
 
+    /**
+     * Supprime un client de la base de données par son ID.
+     * @param id L'ID du client à supprimer.
+     * @return true si la suppression est réussie, false sinon.
+     */
     public boolean supprimerClient(int id) {
-        if (connexion == null) return false;
-
         String sql = "DELETE FROM clients WHERE id = ?";
         try (PreparedStatement statement = connexion.prepareStatement(sql)) {
             statement.setInt(1, id);
             int rowsDeleted = statement.executeUpdate();
+            System.out.println("Client avec ID " + id + " supprimé. Lignes affectées : " + rowsDeleted);
             return rowsDeleted > 0;
         } catch (SQLException e) {
             System.err.println("Erreur lors de la suppression du client : " + e.getMessage());
             return false;
-        }
-    }
-
-    public void fermerConnexion() {
-        try {
-            if (connexion != null && !connexion.isClosed()) {
-                connexion.close();
-            }
-        } catch (SQLException e) {
-            System.err.println("Erreur lors de la fermeture de la connexion : " + e.getMessage());
         }
     }
 }
