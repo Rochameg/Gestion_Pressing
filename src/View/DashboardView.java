@@ -1,6 +1,7 @@
 package View;
 
 import View.NouveauClientModal;
+import dao.ClientDAO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -10,6 +11,11 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter; // Ajouté pour le format de la date
+import javax.swing.table.DefaultTableModel;
+import modele.Client;
+import java.util.List;
+import java.util.ArrayList;
+
 
 public class DashboardView extends JFrame {
 
@@ -518,16 +524,52 @@ public class DashboardView extends JFrame {
         content.add(bottomPanel, BorderLayout.CENTER);
         return content;
     }
-
+    
     private JPanel createGenericContentPanel(String menuName) {
-        JPanel panel = new JPanel(new GridBagLayout());
+    if (menuName.equals("Clients")) {
+        return createClientsPanel();
+    }
+       JPanel panel = new JPanel(new GridBagLayout());
         panel.setOpaque(false);
         JLabel label = new JLabel("Contenu de la section : " + menuName);
         label.setFont(new Font("Arial", Font.BOLD, 30));
         label.setForeground(new Color(30, 41, 59));
         panel.add(label);
         return panel;
+    // ... reste du code existant
+}
+
+private JPanel createClientsPanel() {
+    JPanel panel = new JPanel(new BorderLayout());
+    panel.setOpaque(false);
+    
+    // Récupérez les clients depuis la base de données
+    ClientDAO clientDAO = new ClientDAO();
+    List<Client> clients = clientDAO.obtenirTousLesClients();
+    
+    // Créez un modèle de table
+    String[] columnNames = {"ID", "Nom", "Prénom", "Téléphone", "Email", "Adresse"};
+    DefaultTableModel model = new DefaultTableModel(columnNames, 0);
+    
+    for (Client client : clients) {
+        Object[] row = {
+            client.getId(),
+            client.getNom(),
+            client.getPrenom(),
+            client.getTelephone(),
+            client.getEmail(),
+            client.getAdresse()
+        };
+        model.addRow(row);
     }
+    
+    JTable table = new JTable(model);
+    JScrollPane scrollPane = new JScrollPane(table);
+    
+    panel.add(scrollPane, BorderLayout.CENTER);
+    
+    return panel;
+}
 
     private JPanel createModernStatsPanel() {
         JPanel statsPanel = new JPanel(new GridLayout(1, 4, 20, 0));

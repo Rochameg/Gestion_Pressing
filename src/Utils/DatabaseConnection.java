@@ -2,7 +2,9 @@ package Utils;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 public class DatabaseConnection {
     private static final String DB_URL = "jdbc:mysql://localhost:3306/pressing_base";
@@ -16,5 +18,17 @@ public class DatabaseConnection {
         } catch (ClassNotFoundException e) {
             throw new SQLException("MySQL JDBC Driver not found", e);
         }
+    }
+
+    public PreparedStatement prepareStatement(String sql, int RETURN_GENERATED_KEYS) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+    public Statement createStatement() {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+    public PreparedStatement prepareStatement(String sql) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 }

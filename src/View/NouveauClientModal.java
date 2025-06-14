@@ -1,5 +1,7 @@
 package View;
 
+import modele.Client;
+import dao.ClientDAO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -7,18 +9,16 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.geom.Rectangle2D;
+import Utils.DatabaseConnection;
 
 public class NouveauClientModal extends JDialog {
-
-    private JTextField prenomField;
-    private JTextField nomField;
-    private JTextField emailField;
-    private JTextField telephoneField;
-    private JTextField adresseField;
-    private JCheckBox emailCheckBox;
+    
+    
+    private JTextField nomField, prenomField, telephoneField, emailField, adresseField;
     private JCheckBox telephoneCheckBox;
-
+    private JCheckBox emailCheckBox;
     private boolean clientCree = false;
+    private ClientDAO clientDAO;
     
     // Palette de couleurs moderne et sophistiquée
     private Color primaryColor = new Color(99, 102, 241);      // Indigo vibrant
@@ -33,8 +33,14 @@ public class NouveauClientModal extends JDialog {
 
     public NouveauClientModal(JFrame parent) {
         super(parent, "Nouveau Client", true);
+        this.emailCheckBox = new JCheckBox();
+        this.telephoneCheckBox = new JCheckBox();
+               setTitle("Nouveau Client");
+        setModal(true);
+        setLayout(new BorderLayout());
         setUndecorated(true);
         getRootPane().setWindowDecorationStyle(JRootPane.NONE);
+                
 
         initComponents();
         setupLayout();
@@ -52,11 +58,11 @@ public class NouveauClientModal extends JDialog {
     private void initComponents() {
         prenomField = createModernTextField("Prénom");
         nomField = createModernTextField("Nom");
-        emailField = createModernTextField("votre@email.com");
+        emailField = createModernTextField("mulho@email.com");
         telephoneField = createModernTextField("+33 6 12 34 56 78");
-        adresseField = createModernTextField("123 Rue de la Paix, Paris");
+        adresseField = createModernTextField("Rue 27X24 Medina, Dakar");
 
-        emailCheckBox = createModernCheckBox();
+        JCheckBox emailCheckBox = createModernCheckBox();
         telephoneCheckBox = createModernCheckBox();
     }
 
@@ -451,7 +457,7 @@ public class NouveauClientModal extends JDialog {
 
         return buttonPanel;
     }
-
+    
     private JButton createModernButton(String text, Color bgColor, boolean isPrimary) {
         JButton button = new JButton() {
             private boolean isHovered = false;
@@ -678,8 +684,8 @@ public class NouveauClientModal extends JDialog {
             parentFrame.setUndecorated(true);
             parentFrame.setSize(0, 0);
             
-            NouveauClientModal modal = new NouveauClientModal(parentFrame);
-            modal.setVisible(true);
+            NouveauClientModal NouveauClientModal = new NouveauClientModal(parentFrame);
+            NouveauClientModal.setVisible(true);
             
             System.exit(0);
         });
