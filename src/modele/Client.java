@@ -1,7 +1,5 @@
 package modele;
 
-import Utils.DatabaseConnection;
-
 public class Client {
     private int id;
     private String nom;
@@ -9,11 +7,19 @@ public class Client {
     private String telephone;
     private String email;
     private String adresse;
+    // Ajoutez d'autres champs si nécessaire, par exemple, nombreCommandes, derniereCommandeDate
 
-    // Constructeurs
-    public Client() {}
+    public Client(int id, String nom, String prenom, String telephone, String email, String adresse) {
+        this.id = id;
+        this.nom = nom;
+        this.prenom = prenom;
+        this.telephone = telephone;
+        this.email = email;
+        this.adresse = adresse;
+    }
 
-    public Client(int par, String nom, String prenom, String telephone, String email, String adresse) {
+    // Constructeur sans ID pour l'ajout (l'ID sera généré par la BDD)
+    public Client(String nom, String prenom, String telephone, String email, String adresse) {
         this.nom = nom;
         this.prenom = prenom;
         this.telephone = telephone;
@@ -39,4 +45,20 @@ public class Client {
 
     public String getAdresse() { return adresse; }
     public void setAdresse(String adresse) { this.adresse = adresse; }
+
+    // Placeholder for other fields if they exist in your DB/model
+    // public int getNombreCommandes() { return 0; }
+    // public String getDerniereCommandeDate() { return null; }
+
+    @Override
+    public String toString() {
+        return "Client{" +
+               "id=" + id +
+               ", nom='" + nom + '\'' +
+               ", prenom='" + prenom + '\'' +
+               ", telephone='" + telephone + '\'' +
+               ", email='" + email + '\'' +
+               ", adresse='" + adresse + '\'' +
+               '}';
+    }
 }

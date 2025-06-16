@@ -47,12 +47,16 @@ public class NouveauClientModal extends JDialog {
     public NouveauClientModal(JFrame parent) {
         super(parent, "Nouveau Client", true);
 
-        // Initialisation de ClientDAO (assurez-vous que DatabaseConnection.getConnection() est fonctionnel)
+        // Initialisation de ClientDAO (assurez-vous que
+        // DatabaseConnection.getConnection() est fonctionnel)
         try {
             this.clientDAO = new ClientDAO(DatabaseConnection.getConnection());
         } catch (Exception e) {
-            Logger.getLogger(NouveauClientModal.class.getName()).log(Level.SEVERE, "Impossible d'établir la connexion à la base de données pour ClientDAO.", e);
-            JOptionPane.showMessageDialog(this, "Erreur de connexion à la base de données. Veuillez contacter l'administrateur.", "Erreur Fatale", JOptionPane.ERROR_MESSAGE);
+            Logger.getLogger(NouveauClientModal.class.getName()).log(Level.SEVERE,
+                    "Impossible d'établir la connexion à la base de données pour ClientDAO.", e);
+            JOptionPane.showMessageDialog(this,
+                    "Erreur de connexion à la base de données. Veuillez contacter l'administrateur.", "Erreur Fatale",
+                    JOptionPane.ERROR_MESSAGE);
             // Si la connexion échoue ici, il est préférable de ne pas continuer
             // et de fermer le modal ou de désactiver des fonctionnalités.
             dispose();
@@ -87,6 +91,12 @@ public class NouveauClientModal extends JDialog {
 
         emailCheckBox = createModernCheckBox();
         telephoneCheckBox = createModernCheckBox();
+    }
+
+    private boolean clientAdded = false;
+
+    public boolean isClientAdded() {
+        return clientAdded;
     }
 
     // Classe interne pour les JTextField personnalisés avec placeholder et hover
@@ -256,7 +266,8 @@ public class NouveauClientModal extends JDialog {
             }
 
             g2.dispose();
-            // super.paintComponent(g); // Pas besoin d'appeler super.paintComponent ici car nous dessinons tout
+            // super.paintComponent(g); // Pas besoin d'appeler super.paintComponent ici car
+            // nous dessinons tout
         }
 
         public void setHovered(boolean hovered) {
@@ -651,7 +662,7 @@ public class NouveauClientModal extends JDialog {
         // Validation des champs obligatoires
         if (isFieldEmpty(prenomField, "Prénom") ||
                 isFieldEmpty(nomField, "Nom") ||
-                isFieldEmpty(adresseField, "Rue 27X24 Medina, Dakar")) {
+                isFieldEmpty(adresseField, "Adresse")) {
 
             showModernDialog(
                     "Champs manquants",
@@ -660,8 +671,7 @@ public class NouveauClientModal extends JDialog {
             return;
         }
 
-        // Validation conditionnelle pour l'email si la checkbox est cochée et/ou le
-        // champ n'est pas le placeholder
+        // Validation conditionnelle de l'email
         if (emailCheckBox.isSelected() || (!email.isEmpty() && !email.equals("mulho@email.com"))) {
             if (!isValidEmail(email)) {
                 showModernDialog(
@@ -671,58 +681,55 @@ public class NouveauClientModal extends JDialog {
                 return;
             }
         } else {
-            email = null; // Si non coché ou placeholder, considérer comme non renseigné
+            email = null; // non requis
         }
 
-        // Validation conditionnelle pour le téléphone si la checkbox est cochée et/ou
-        // le champ n'est pas le placeholder
+        // Validation conditionnelle du téléphone
         if (telephoneCheckBox.isSelected() || (!telephone.isEmpty() && !telephone.equals("+33 6 12 34 56 78"))) {
-            // Vous pourriez ajouter une validation spécifique pour le format du numéro de
-            // téléphone ici
-            if (telephone.equals("+33 6 12 34 56 78")) { // Si c'est juste le placeholder et coché
+            if (telephone.equals("+33 6 12 34 56 78")) {
                 showModernDialog(
-                        "Numéro de téléphone manquant",
-                        "Veuillez saisir un numéro de téléphone valide si la case est cochée.",
+                        "Numéro de téléphone invalide",
+                        "Veuillez saisir un numéro de téléphone correct si la case est cochée.",
                         JOptionPane.WARNING_MESSAGE);
                 return;
             }
         } else {
-            telephone = null; // Si non coché ou placeholder, considérer comme non renseigné
+            telephone = null;
         }
 
-        // Crée un nouvel objet Client. L'ID est 0 car il sera généré par la BDD.
+        // Création de l'objet client
         Client nouveauClient = new Client(0, prenom, nom, telephone, email, adresse);
 
         try {
-            // --- C'est ici que la correction a été appliquée : appel de "ajouterClient" ---
-            int newClientId = clientDAO.ajouterClient(nouveauClient);
+            ClientDAO clientDAO = new ClientDAO(DatabaseConnection.getConnection());
+            boolean success = clientDAO.ajouterClient(nouveauClient);
 
-            if (newClientId != -1) { // Vérifie si l'ajout a réussi (retourne l'ID généré, pas -1)
-                clientCree = true;
+            if (success) {
+                clientCree = true; // Indicateur que le client a été ajouté
 
                 showModernDialog(
                         "Succès",
                         "✨ Client créé avec succès !\n\n" +
-                                "👤 " + prenomField.getText() + " " + nomField.getText() + "\n" +
+                                "👤 " + prenom + " " + nom + "\n" +
                                 "📧 " + (email != null ? email : "Non renseigné") + "\n" +
                                 "📱 " + (telephone != null ? telephone : "Non renseigné") + "\n" +
-                                "🏠 " + adresseField.getText() + "\n\n" +
-                                "ID Client: " + newClientId, // Afficher l'ID généré
+                                "🏠 " + adresse,
                         JOptionPane.INFORMATION_MESSAGE);
 
-                dispose(); // Ferme le modal après l'enregistrement
+                dispose(); // Fermer la fenêtre après enregistrement
             } else {
                 showModernDialog(
                         "Échec de l'ajout",
-                        "Le client n'a pas pu être ajouté à la base de données. Veuillez vérifier les informations et réessayer.",
+                        "Le client n'a pas pu être ajouté à la base de données.",
                         JOptionPane.ERROR_MESSAGE);
             }
+
         } catch (Exception e) {
-            // Utilisation du logger pour une meilleure gestion des erreurs en production
-            Logger.getLogger(NouveauClientModal.class.getName()).log(Level.SEVERE, "Erreur lors de l'enregistrement du client", e);
+            Logger.getLogger(NouveauClientModal.class.getName()).log(Level.SEVERE,
+                    "Erreur lors de l'enregistrement du client", e);
             showModernDialog(
                     "Erreur de base de données",
-                    "Une erreur est survenue lors de l'ajout du client : " + e.getMessage() + "\nConsultez les logs pour plus de détails.",
+                    "Une erreur est survenue lors de l'ajout du client :\n" + e.getMessage(),
                     JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -734,7 +741,8 @@ public class NouveauClientModal extends JDialog {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
                 | UnsupportedLookAndFeelException e) {
-            Logger.getLogger(NouveauClientModal.class.getName()).log(Level.WARNING, "Erreur lors de la définition du L&F système pour le dialogue.", e);
+            Logger.getLogger(NouveauClientModal.class.getName()).log(Level.WARNING,
+                    "Erreur lors de la définition du L&F système pour le dialogue.", e);
         }
 
         JOptionPane optionPane = new JOptionPane(message, messageType);
@@ -746,7 +754,8 @@ public class NouveauClientModal extends JDialog {
             UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName()); // Ou votre propre L&F si défini
         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
                 | UnsupportedLookAndFeelException e) {
-            Logger.getLogger(NouveauClientModal.class.getName()).log(Level.WARNING, "Erreur lors du rétablissement du L&F par défaut.", e);
+            Logger.getLogger(NouveauClientModal.class.getName()).log(Level.WARNING,
+                    "Erreur lors du rétablissement du L&F par défaut.", e);
         }
     }
 
@@ -772,7 +781,8 @@ public class NouveauClientModal extends JDialog {
                 System.setProperty("awt.useSystemAAFontSettings", "on");
                 System.setProperty("swing.aatext", "true");
             } catch (Exception e) {
-                Logger.getLogger(NouveauClientModal.class.getName()).log(Level.SEVERE, "Erreur lors de l'initialisation du L&F dans main.", e);
+                Logger.getLogger(NouveauClientModal.class.getName()).log(Level.SEVERE,
+                        "Erreur lors de l'initialisation du L&F dans main.", e);
             }
 
             JFrame parentFrame = new JFrame();

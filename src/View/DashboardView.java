@@ -1,9 +1,9 @@
 package View;
 
-import View.NouveauClientModal;
 import dao.ClientDAO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel; // Ajout pour les tableaux
 import java.awt.*;
 import java.awt.event.*;
 import java.util.Objects;
@@ -11,16 +11,21 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import javax.swing.table.DefaultTableModel;
-import modele.Client;
-import java.util.List;
-import java.util.ArrayList; // Gardez si vous utilisez ailleurs, sinon supprimer
 import java.sql.Connection;
-// import java.sql.DriverManager; // Plus nécessaire directement ici
-import java.sql.SQLException; // Gardez si d'autres parties du code peuvent lancer SQLException
+import java.sql.SQLException;
 import Utils.DatabaseConnection;
+import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+// Importations pour JFreeChart (si vous l'utilisez)
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.PiePlot;
+import org.jfree.data.general.DefaultPieDataset;
+import org.jfree.data.category.DefaultCategoryDataset; // Pour un graphique à barres/lignes
+import org.jfree.chart.plot.PlotOrientation; // Pour les graphiques à barres/lignes
 
 public class DashboardView extends JFrame {
 
@@ -39,32 +44,24 @@ public class DashboardView extends JFrame {
     private final CardLayout cardLayout;
 
     private JPanel selectedMenuItem = null;
-    private final String[] menuLabels = { "Dashboard", "Clients", "Livraisons", "Stock", "Paramètres", "Rapports" };
+    private final String[] menuLabels = { "Dashboard", "Clients", "Commande(s)", "Livraison(s)", "Stocks",
+            "Déconnexion" };
 
     private JLabel mainHeaderTitleLabel;
     private JLabel mainHeaderSubtitleLabel;
 
-    private ClientDAO clientDAO; // Déclaré ici au niveau de la classe
+    private Connection dbConnection;
 
     public DashboardView() {
-        // --- DÉBUT DES MODIFICATIONS DANS LE CONSTRUCTEUR ---
-        Connection connexion = null;
         try {
-            connexion = DatabaseConnection.getConnection(); // Obtient la connexion
+            this.dbConnection = DatabaseConnection.getConnection();
         } catch (SQLException ex) {
             Logger.getLogger(DashboardView.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        if (connexion != null) {
-            this.clientDAO = new ClientDAO(connexion); // Initialise clientDAO si la connexion est OK
-        } else {
-            // Gérer l'échec de la connexion ici
-            // Par exemple, afficher un message d'erreur et éventuellement désactiver des fonctionnalités
             JOptionPane.showMessageDialog(this,
                     "Impossible de se connecter à la base de données. Certaines fonctionnalités peuvent être limitées.",
                     "Erreur de Connexion", JOptionPane.ERROR_MESSAGE);
-            this.clientDAO = null; // Assurez-vous que clientDAO est null en cas d'échec
+            this.dbConnection = null;
         }
-        // --- FIN DES MODIFICATIONS DANS LE CONSTRUCTEUR ---
 
         setTitle("RoyalPressing");
         setIconImage(Toolkit.getDefaultToolkit()
@@ -84,12 +81,11 @@ public class DashboardView extends JFrame {
         mainContentPanel.setOpaque(false);
 
         mainContentPanel.add(createDashboardPanel(), menuLabels[0]);
-        // createGenericContentPanel appellera createClientsPanel pour "Clients"
-        mainContentPanel.add(createGenericContentPanel("Clients"), menuLabels[1]); 
-        mainContentPanel.add(createGenericContentPanel("Livraisons"), menuLabels[2]);
-        mainContentPanel.add(createGenericContentPanel("Stock"), menuLabels[3]);
-        mainContentPanel.add(createGenericContentPanel("Paramètres"), menuLabels[4]);
-        mainContentPanel.add(createGenericContentPanel("Rapports"), menuLabels[5]);
+        mainContentPanel.add(new ClientView(this.dbConnection), menuLabels[1]);
+        mainContentPanel.add(new CommandeView(this.dbConnection), menuLabels[2]);
+        mainContentPanel.add(new LivraisonView(this.dbConnection), menuLabels[3]);
+        mainContentPanel.add(new StockView(this.dbConnection), menuLabels[4]);
+        mainContentPanel.add(createGenericContentPanel("Déconnexion"), menuLabels[5]);
 
         JPanel mainPanelContainer = createModernMainPanel();
         mainPanelContainer.add(mainContentPanel, BorderLayout.CENTER);
@@ -114,7 +110,7 @@ public class DashboardView extends JFrame {
                                     String labelText = labelComp.getText();
                                     if (labelText != null && labelText.equals("Dashboard")) {
                                         updateSelection(item);
-                                        updateMainHeaderTitle(menuLabels[0]);
+                                        // updateMainHeaderTitle(menuLabels[0]);
                                         break;
                                     }
                                 }
@@ -125,56 +121,6 @@ public class DashboardView extends JFrame {
             }
         });
     }
-
-    // --- Les autres méthodes sont inchangées jusqu'à createClientsPanel ---
-
-    private JPanel createClientsPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setOpaque(false);
-
-        // --- DÉBUT DES MODIFICATIONS DANS createClientsPanel ---
-        // N'initialisez PAS la connexion ni le ClientDAO ici.
-        // Ils sont déjà initialisés dans le constructeur de DashboardView.
-
-        // Vérifiez si clientDAO est disponible
-        if (clientDAO == null) {
-            JLabel errorLabel = new JLabel("Données clients non disponibles: Problème de connexion à la base de données.", SwingConstants.CENTER);
-            errorLabel.setForeground(Color.RED);
-            errorLabel.setFont(new Font("Arial", Font.BOLD, 16));
-            panel.add(errorLabel, BorderLayout.CENTER);
-            return panel; // Retournez le panneau avec le message d'erreur
-        }
-
-        // Récupérez les clients depuis la base de données en utilisant l'instance existante de clientDAO
-        List<Client> clients = clientDAO.obtenirTousLesClients();
-        // --- FIN DES MODIFICATIONS DANS createClientsPanel ---
-
-        // Créez un modèle de table
-        String[] columnNames = { "ID", "Nom", "Prénom", "Téléphone", "Email", "Adresse" };
-        DefaultTableModel model = new DefaultTableModel(columnNames, 0);
-
-        // Remplissez le modèle avec les données des clients
-        for (Client client : clients) {
-            Object[] row = {
-                client.getId(),
-                client.getNom(),
-                client.getPrenom(),
-                client.getTelephone(),
-                client.getEmail(),
-                client.getAdresse()
-            };
-            model.addRow(row);
-        }
-
-        JTable table = new JTable(model);
-        JScrollPane scrollPane = new JScrollPane(table);
-
-        panel.add(scrollPane, BorderLayout.CENTER);
-
-        return panel;
-    }
-
-    // ... (le reste de vos méthodes reste inchangé) ...
 
     private JPanel createModernSidePanel() {
         JPanel sidePanel = new JPanel() {
@@ -235,7 +181,6 @@ public class DashboardView extends JFrame {
         logoContainer.setPreferredSize(new Dimension(230, 80));
         logoContainer.setBorder(new EmptyBorder(15, 20, 15, 20));
 
-        // Utilisation de votre propre icône de logo
         ImageIcon logoIcon = new ImageIcon(Objects.requireNonNull(getClass().getResource("/images/logo.png")));
         Image scaledLogo = logoIcon.getImage().getScaledInstance(40, 40, Image.SCALE_SMOOTH);
         JLabel iconLabel = new JLabel(new ImageIcon(scaledLogo));
@@ -267,15 +212,13 @@ public class DashboardView extends JFrame {
     }
 
     private void createModernNavigation(JPanel parent) {
-        // Chemins relatifs à vos nouvelles icônes (assurez-vous qu'elles existent dans
-        // le dossier 'images')
         String[] iconPaths = {
                 "/images/dashboard_icon.png",
                 "/images/clients_icon.png",
+                "/images/commande_icon.png",
                 "/images/delivery_icon.png",
                 "/images/stock_icon.png",
-                "/images/settings_icon.png",
-                "/images/reports_icon.png"
+                "/images/deconnexion_icon.png"
         };
         int iconSize = 24;
 
@@ -291,8 +234,6 @@ public class DashboardView extends JFrame {
                 } else {
                     System.err.println("Couldn't find image file: " + iconPaths[i]
                             + ". Using a placeholder or defaulting to no icon.");
-                    // Si l'image n'est pas trouvée, l'icône restera null.
-                    // Vous pouvez ajouter une icône par défaut ici si vous le souhaitez.
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -305,8 +246,50 @@ public class DashboardView extends JFrame {
                 @Override
                 public void mousePressed(MouseEvent e) {
                     updateSelection(menuItem);
-                    cardLayout.show(mainContentPanel, menuLabels[index]);
-                    updateMainHeaderTitle(menuLabels[index]);
+                    if (menuLabels[index].equals("Déconnexion")) {
+                        DashboardView.this.dispose();
+                        SwingUtilities.invokeLater(() -> new LoginView().setVisible(true));
+                    } else {
+                        cardLayout.show(mainContentPanel, menuLabels[index]);
+                        // updateMainHeaderTitle(menuLabels[index]);
+
+                        // --- AJOUT : Rafraîchissement des données pour Clients, Commandes, Livraisons,
+                        // et Stocks ---
+                        if (menuLabels[index].equals("Clients")) {
+                            Component[] components = mainContentPanel.getComponents();
+                            for (Component comp : components) {
+                                if (comp instanceof ClientView) {
+                                    ((ClientView) comp).loadClientData();
+                                    break;
+                                }
+                            }
+                        } else if (menuLabels[index].equals("Commande(s)")) {
+                            Component[] components = mainContentPanel.getComponents();
+                            for (Component comp : components) {
+                                if (comp instanceof CommandeView) {
+                                    ((CommandeView) comp).loadCommandeData();
+                                    break;
+                                }
+                            }
+                        } else if (menuLabels[index].equals("Livraison(s)")) {
+                            Component[] components = mainContentPanel.getComponents();
+                            for (Component comp : components) {
+                                if (comp instanceof LivraisonView) {
+                                    ((LivraisonView) comp).loadLivraisonData();
+                                    break;
+                                }
+                            }
+                        } else if (menuLabels[index].equals("Stocks")) {
+                            Component[] components = mainContentPanel.getComponents();
+                            for (Component comp : components) {
+                                if (comp instanceof StockView) {
+                                    ((StockView) comp).loadStockData();
+                                    break;
+                                }
+                            }
+                        }
+                        // -----------------------------------------------------------------------------------------
+                    }
                 }
             });
             parent.add(menuItem);
@@ -447,92 +430,120 @@ public class DashboardView extends JFrame {
         mainPanel.setLayout(new BorderLayout());
         mainPanel.setBorder(new EmptyBorder(30, 30, 30, 30));
 
-        JPanel headerPanel = createModernHeader("📊 Tableau de Bord", "Vue d'overview de votre pressing moderne");
+        // JPanel headerPanel = createModernHeader("📊 Tableau de Bord", "Vue d'overview
+        // de votre pressing moderne");
+        JPanel headerPanel = createModernHeader(
+                "Tableau de Bord",
+                "Vue d'overview de votre pressing moderne",
+                "/images/tableau_icon.png" // Chemin relatif dans le classpath
+        );
+
         mainPanel.add(headerPanel, BorderLayout.NORTH);
 
         return mainPanel;
     }
 
-    private JPanel createModernHeader(String title, String subtitle) {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setOpaque(false);
-        header.setBorder(new EmptyBorder(0, 0, 30, 0));
+    private JPanel createModernHeader(String title, String subtitle, String iconPath) {
+    JPanel headerPanel = new JPanel(new BorderLayout());
+    headerPanel.setOpaque(false);
 
-        JPanel titlePanel = new JPanel();
-        titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
-        titlePanel.setOpaque(false);
+    // Création du titre avec icône
+    JLabel titleLabel = new JLabel(title);
+    titleLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
+    titleLabel.setForeground(new Color(30, 41, 59));
 
-        mainHeaderTitleLabel = new JLabel(title);
-        mainHeaderTitleLabel.setFont(new Font("Arial", Font.BOLD, 32));
-        mainHeaderTitleLabel.setForeground(new Color(30, 41, 59));
-
-        mainHeaderSubtitleLabel = new JLabel(subtitle);
-        mainHeaderSubtitleLabel.setFont(new Font("Arial", Font.PLAIN, 16));
-        mainHeaderSubtitleLabel.setForeground(new Color(100, 116, 139));
-
-        titlePanel.add(mainHeaderTitleLabel);
-        titlePanel.add(Box.createVerticalStrut(5));
-        titlePanel.add(mainHeaderSubtitleLabel);
-
-        JPanel actionPanel = createActionButtons();
-
-        header.add(titlePanel, BorderLayout.WEST);
-        header.add(actionPanel, BorderLayout.EAST);
-
-        return header;
-    }
-
-    private void updateMainHeaderTitle(String menuLabel) {
-        String title = "";
-        String subtitle = "";
-
-        switch (menuLabel) {
-            case "Dashboard":
-                title = " Tableau de Bord";
-                subtitle = "Vue d'ensemble de votre pressing moderne";
-                break;
-            case "Clients":
-                title = " Gestion des Clients";
-                subtitle = "Gérez vos informations clients et leur historique";
-                break;
-            case "Livraisons":
-                title = " Suivi des Livraisons";
-                subtitle = "Gérez les livraisons de vos commandes";
-                break;
-            case "Stock":
-                title = " Gestion du Stock";
-                subtitle = "Surveillez et gérez votre inventaire de produits";
-                break;
-            case "Paramètres":
-                title = " Paramètres de l'Application";
-                subtitle = "Configurez les options de votre application";
-                break;
-            case "Rapports":
-                title = " Génération de Rapports";
-                subtitle = "Accédez à des analyses et des statistiques détaillées";
-                break;
+    if (iconPath != null && !iconPath.isEmpty()) {
+        URL iconURL = getClass().getResource(iconPath);
+        if (iconURL != null) {
+            ImageIcon icon = new ImageIcon(iconURL);
+            Image scaledImage = icon.getImage().getScaledInstance(32, 32, Image.SCALE_SMOOTH);
+            titleLabel.setIcon(new ImageIcon(scaledImage));
+            titleLabel.setIconTextGap(10); // Espace entre l’icône et le texte
+        } else {
+            System.err.println("❌ Image introuvable : " + iconPath);
         }
-        mainHeaderTitleLabel.setText(title);
-        mainHeaderSubtitleLabel.setText(subtitle);
     }
 
-    private JPanel createActionButtons() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        panel.setOpaque(false);
+    JLabel subtitleLabel = new JLabel(subtitle);
+    subtitleLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+    subtitleLabel.setForeground(new Color(100, 116, 139));
 
-        JButton newClientBtn = createModernButton("+ Nouveau Client", secondaryColor);
-        JButton reportBtn = createModernButton("/ Rapport", primaryColor);
+    JPanel textPanel = new JPanel();
+    textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
+    textPanel.setOpaque(false);
+    textPanel.add(titleLabel);
+    textPanel.add(Box.createVerticalStrut(5));
+    textPanel.add(subtitleLabel);
 
-        newClientBtn.addActionListener(e -> {
-            NouveauClientModal modal = new NouveauClientModal(DashboardView.this);
-            modal.setVisible(true);
-        });
+    headerPanel.add(textPanel, BorderLayout.WEST);
 
-        panel.add(newClientBtn);
-        panel.add(reportBtn);
+    return headerPanel;
+}
 
-        return panel;
-    }
+    // private void updateMainHeaderTitle(String menuLabel) {
+    // String title = "";
+    // String subtitle = "";
+
+    // switch (menuLabel) {
+    // case "Dashboard":
+    // title = " Tableau de Bord";
+    // subtitle = "Vue d'ensemble de votre pressing moderne";
+    // break;
+    // case "Clients":
+    // title = " Gestion des Clients";
+    // subtitle = "Gérez vos informations clients et leur historique";
+    // break;
+    // case "Commande(s)":
+    // title = " Suivi des Commandes";
+    // subtitle = "Gérez vos informations commandes et leur progression";
+    // break;
+    // case "Livraison(s)":
+    // title = " Gestion des Livraisons";
+    // subtitle = "Surveillez et gérez vos livraisons";
+    // break;
+    // case "Stocks":
+    // title = " Gestion des Stocks";
+    // subtitle = "Gérez les stocks de produits et fournitures";
+    // break;
+    // case "Déconnexion":
+    // title = " Rapports et Analyses";
+    // subtitle = "Accédez à des analyses et des statistiques détaillées";
+    // break;
+    // }
+    // mainHeaderTitleLabel.setText(title);
+    // mainHeaderSubtitleLabel.setText(subtitle);
+    // }
+
+    // private JPanel createActionButtons() {
+    //     JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+    //     panel.setOpaque(false);
+
+    //     JButton newClientBtn = createModernButton("+ Nouveau Client", secondaryColor);
+    //     JButton reportBtn = createModernButton("/ Rapport", primaryColor);
+
+    //     newClientBtn.addActionListener(e -> {
+    //         NouveauClientModal modal = new NouveauClientModal(DashboardView.this);
+    //         modal.setVisible(true);
+    //         if (modal.isClientAdded()) {
+    //             Component[] components = mainContentPanel.getComponents();
+    //             for (Component comp : components) {
+    //                 if (comp instanceof ClientView) {
+    //                     ((ClientView) comp).loadClientData();
+    //                     break;
+    //                 }
+    //             }
+    //         }
+    //     });
+
+    //     reportBtn.addActionListener(e -> {
+    //         JOptionPane.showMessageDialog(this, "Fonctionnalité de rapport à implémenter.");
+    //     });
+
+    //     panel.add(newClientBtn);
+    //     panel.add(reportBtn);
+
+    //     return panel;
+    // }
 
     private JButton createModernButton(String text, Color color) {
         JButton button = new JButton(text) {
@@ -581,20 +592,75 @@ public class DashboardView extends JFrame {
     }
 
     private JPanel createDashboardPanel() {
-        JPanel content = new JPanel(new BorderLayout());
+        JPanel content = new JPanel(new BorderLayout(0, 10)); // Ajout d'un espace vertical
         content.setOpaque(false);
+
+        // Panneau supérieur pour les statistiques
         JPanel statsPanel = createModernStatsPanel();
         content.add(statsPanel, BorderLayout.NORTH);
-        JPanel bottomPanel = new JPanel();
+
+        JPanel bottomPanel = new JPanel(new GridLayout(1, 3, 10, 30)); // Grille 1x2 pour les tableaux
         bottomPanel.setOpaque(false);
-        content.add(bottomPanel, BorderLayout.CENTER);
+
+        JPanel recentOrdersPanel = createModernCard("Commandes Récentes", createRecentOrdersTable());
+        bottomPanel.add(recentOrdersPanel);
+
+        JPanel lowStockPanel = createModernCard("Articles en Stock Bas", createLowStockTable());
+        bottomPanel.add(lowStockPanel);
+
+        content.add(bottomPanel, BorderLayout.SOUTH);
+
         return content;
     }
 
+    // Nouvelle méthode pour créer une carte générique pour le contenu
+    private JPanel createModernCard(String title, JComponent contentComponent) {
+        JPanel card = new JPanel() {
+            private boolean hovered = false;
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                g2d.setColor(Color.WHITE);
+                g2d.fillRoundRect(0, 0, getWidth() - 50, getHeight() - 1, 0, 20);
+                g2d.setColor(new Color(25, 23, 24));
+                g2d.setStroke(new BasicStroke(1.5f));
+                g2d.drawRoundRect(0, 0, getWidth() - 50, getHeight() -1, 0, 20);
+
+                g2d.dispose();
+            }
+        };
+        card.setLayout(new BorderLayout(15, 15)); // Espacement interne
+        card.setBorder(new EmptyBorder(50, 20, 20, 50));
+        card.setOpaque(false);
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        titleLabel.setForeground(new Color(30, 41, 59));
+        card.add(titleLabel, BorderLayout.NORTH);
+
+        card.add(contentComponent, BorderLayout.CENTER); // Ajout du composant de contenu passé en paramètre
+
+        card.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                ((JPanel) e.getSource()).putClientProperty("hovered", true);
+                card.repaint();
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                ((JPanel) e.getSource()).putClientProperty("hovered", false);
+                card.repaint();
+            }
+        });
+
+        return card;
+    }
+
     private JPanel createGenericContentPanel(String menuName) {
-        if (menuName.equals("Clients")) {
-            return createClientsPanel();
-        }
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setOpaque(false);
         JLabel label = new JLabel("Contenu de la section : " + menuName);
@@ -618,7 +684,8 @@ public class DashboardView extends JFrame {
     }
 
     private JPanel createModernStatCard(String iconPath, String title, String value, Color accentColor) {
-        JPanel card = new JPanel() {
+        JPanel card;
+        card = new JPanel() {
             private boolean hovered = false;
 
             @Override
@@ -707,6 +774,142 @@ public class DashboardView extends JFrame {
         return card;
     }
 
+    // --- NOUVELLES MÉTHODES POUR LE CONTENU DU DASHBOARD ---
+
+    private ChartPanel createServicesPieChartPanel() {
+        DefaultPieDataset dataset = new DefaultPieDataset();
+        // Remplacez ces données par des données réelles de votre BDD
+        dataset.setValue("Lavage à sec", 45);
+        dataset.setValue("Nettoyage humide", 30);
+        dataset.setValue("Repassage", 15);
+        dataset.setValue("Retouches", 10);
+
+        JFreeChart chart = ChartFactory.createPieChart(
+                "", // Titre du graphique (vide car déjà dans la carte)
+                dataset,
+                true, // Légende
+                true, // Tooltips
+                false // URLs
+        );
+
+        // Personnalisation du graphique
+        chart.setBackgroundPaint(null); // Rendre le fond transparent
+        PiePlot plot = (PiePlot) chart.getPlot();
+        plot.setBackgroundPaint(null); // Rendre le fond du plot transparent
+        plot.setOutlineVisible(false); // Cacher la bordure du plot
+        plot.setSectionPaint("Lavage à sec", primaryColor);
+        plot.setSectionPaint("Nettoyage humide", secondaryColor);
+        plot.setSectionPaint("Repassage", warningColor);
+        plot.setSectionPaint("Retouches", accentColor);
+        plot.setLabelBackgroundPaint(Color.WHITE); // Couleur de fond des labels
+        plot.setLabelFont(new Font("Arial", Font.PLAIN, 10)); // Police des labels
+
+        ChartPanel chartPanel = new ChartPanel(chart);
+        chartPanel.setOpaque(false); // Rend le panneau du graphique transparent
+        chartPanel.setPreferredSize(new Dimension(300, 250)); // Taille par défaut, sera ajustée par le layout
+        chartPanel.setBorder(BorderFactory.createEmptyBorder()); // Pas de bordure par défaut
+        return chartPanel;
+    }
+
+    private ChartPanel createMonthlyOrdersBarChartPanel() {
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+        // Remplacez ces données par des données réelles de votre BDD
+        dataset.addValue(50, "Commandes", "Jan");
+        dataset.addValue(70, "Commandes", "Fev");
+        dataset.addValue(60, "Commandes", "Mar");
+        dataset.addValue(90, "Commandes", "Avr");
+        dataset.addValue(80, "Commandes", "Mai");
+        dataset.addValue(110, "Commandes", "Juin");
+
+        JFreeChart barChart = ChartFactory.createBarChart(
+                "", // Titre du graphique (vide car déjà dans la carte)
+                "Mois", // Catégorie axe X
+                "Nombre de Commandes", // Valeur axe Y
+                dataset,
+                PlotOrientation.VERTICAL,
+                false, // Légende
+                true, // Tooltips
+                false // URLs
+        );
+
+        // Personnalisation du graphique
+        barChart.setBackgroundPaint(null);
+        barChart.getPlot().setBackgroundPaint(null);
+        barChart.getPlot().setOutlineVisible(false);
+        barChart.getCategoryPlot().getRenderer().setSeriesPaint(0, primaryColor); // Couleur des barres
+        barChart.getCategoryPlot().getRangeAxis()
+                .setStandardTickUnits(org.jfree.chart.axis.NumberAxis.createIntegerTickUnits());
+
+        ChartPanel chartPanel = new ChartPanel(barChart);
+        chartPanel.setOpaque(false);
+        chartPanel.setPreferredSize(new Dimension(300, 250));
+        chartPanel.setBorder(BorderFactory.createEmptyBorder());
+        return chartPanel;
+    }
+
+    private JScrollPane createRecentOrdersTable() {
+        String[] columnNames = { "ID Commande", "Client", "Statut", "Montant" };
+        // Remplacez par des données réelles
+        Object[][] data = {
+                { "C001", "Jean Dupont", "En cours", "15.000 FCFA" },
+                { "C002", "Marie Curie", "Terminée", "22.500 FCFA" },
+                { "C003", "Paul Smith", "En attente", "10.000 FCFA" },
+                { "C004", "Alice Wonderland", "Terminée", "30.000 FCFA" }
+        };
+
+        DefaultTableModel model = new DefaultTableModel(data, columnNames) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Rendre les cellules non éditables
+            }
+        };
+        JTable table = new JTable(model);
+        styleTable(table); // Utilisation de la méthode de style existante
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.getViewport().setBackground(Color.WHITE);
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240)));
+        scrollPane.setPreferredSize(new Dimension(400, 200)); // Taille suggérée
+        return scrollPane;
+    }
+
+    private JScrollPane createLowStockTable() {
+        String[] columnNames = { "ID Produit", "Nom Produit", "Quantité" };
+        // Remplacez par des données réelles (ex: items dont la quantité est < un seuil)
+        Object[][] data = {
+                { "P005", "Détachant", "5" },
+                { "P012", "Sacs Plastique", "20" },
+                { "P002", "Lessive Bio", "3" }
+        };
+
+        DefaultTableModel model = new DefaultTableModel(data, columnNames) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        JTable table = new JTable(model);
+        styleTable(table);
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.getViewport().setBackground(Color.WHITE);
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240)));
+        scrollPane.setPreferredSize(new Dimension(400, 200)); // Taille suggérée
+        return scrollPane;
+    }
+
+    // Réutilisation de la méthode de style de table existante
+    private void styleTable(JTable table) {
+        table.setFont(new Font("Arial", Font.PLAIN, 12));
+        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 13));
+        table.getTableHeader().setBackground(primaryColor);
+        table.getTableHeader().setForeground(Color.WHITE);
+        table.setRowHeight(25);
+        table.setGridColor(new Color(240, 240, 240));
+        table.setSelectionBackground(new Color(197, 222, 255));
+        table.setFillsViewportHeight(true);
+    }
+
     private void startTimeUpdater() {
         Timer timer = new Timer();
         timer.scheduleAtFixedRate(new TimerTask() {
@@ -728,7 +931,7 @@ public class DashboardView extends JFrame {
             public void run() {
                 SwingUtilities.invokeLater(() -> {
                     java.time.LocalDate today = java.time.LocalDate.now();
-                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEEE, dd MMMM yyyy"); // Corrigé 'ాత్ర' en 'yyyy'
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEEE, dd MMMM");
                     dateLabel.setText(today.format(formatter));
                 });
             }
