@@ -485,7 +485,7 @@ public class LoginView extends JFrame {
         ));
         field.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 55));
-        field.setPreferredSize(new Dimension(350, 55));  // Largeur cohérente avec le champ password
+        field.setPreferredSize(new Dimension(350, 60));  // Largeur cohérente avec le champ password
 
         // Placeholder effect amélioré
         field.setText("test@gmail.com");
@@ -603,7 +603,7 @@ public class LoginView extends JFrame {
         JPanel buttonContent = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         buttonContent.setOpaque(false);
         
-        JLabel lockIcon = new JLabel(loadIcon("login.png", 24, 24));
+        JLabel lockIcon = new JLabel(loadIcon("logo.png", 24, 24));
         JLabel buttonText = new JLabel("Accéder à l'Espace Royal");
         buttonText.setFont(new Font("Segoe UI", Font.BOLD, 18));
         buttonText.setForeground(Color.WHITE);
