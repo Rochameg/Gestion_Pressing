@@ -434,7 +434,6 @@ public class DashboardView extends JFrame {
         // de votre pressing moderne");
         JPanel headerPanel = createModernHeader(
                 "Tableau de Bord",
-                "Vue d'overview de votre pressing moderne",
                 "/images/tableau_icon.png" // Chemin relatif dans le classpath
         );
 
@@ -443,7 +442,7 @@ public class DashboardView extends JFrame {
         return mainPanel;
     }
 
-    private JPanel createModernHeader(String title, String subtitle, String iconPath) {
+    private JPanel createModernHeader(String title,  String iconPath) {
     JPanel headerPanel = new JPanel(new BorderLayout());
     headerPanel.setOpaque(false);
 
@@ -464,16 +463,16 @@ public class DashboardView extends JFrame {
         }
     }
 
-    JLabel subtitleLabel = new JLabel(subtitle);
-    subtitleLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
-    subtitleLabel.setForeground(new Color(100, 116, 139));
+    //JLabel subtitleLabel = new JLabel(subtitle);
+    //subtitleLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+    //subtitleLabel.setForeground(new Color(100, 116, 139));
 
     JPanel textPanel = new JPanel();
     textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
     textPanel.setOpaque(false);
     textPanel.add(titleLabel);
     textPanel.add(Box.createVerticalStrut(5));
-    textPanel.add(subtitleLabel);
+    //textPanel.add(subtitleLabel);
 
     headerPanel.add(textPanel, BorderLayout.WEST);
 

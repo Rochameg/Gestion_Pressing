@@ -4,11 +4,15 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import javax.imageio.ImageIO;
 import Utils.DatabaseConnection;
 
 
@@ -35,6 +39,11 @@ public class LoginView extends JFrame {
     private static final Color INPUT_BACKGROUND = new Color(55, 65, 81);
     private static final Color INPUT_BORDER = new Color(75, 85, 99);
     private static final Color HOVER_COLOR = new Color(67, 56, 202);
+    private static final Color SUCCESS_COLOR = new Color(34, 197, 94);
+    private static final Color WARNING_COLOR = new Color(251, 191, 36);
+
+    // Chemin vers le dossier des images
+    private static final String IMAGES_PATH = "src/images/";
 
     public LoginView() {
         initializeComponents();
@@ -46,12 +55,78 @@ public class LoginView extends JFrame {
         this.setVisible(true);
     }
 
+    /**
+     * Charge une image depuis le dossier images et la redimensionne
+     */
+    private ImageIcon loadIcon(String filename, int width, int height) {
+        try {
+            File imageFile = new File(IMAGES_PATH + filename);
+            if (imageFile.exists()) {
+                BufferedImage originalImage = ImageIO.read(imageFile);
+                Image scaledImage = originalImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+                return new ImageIcon(scaledImage);
+            } else {
+                System.err.println("Image non trouvée: " + IMAGES_PATH + filename);
+                // Retourne une icône par défaut si l'image n'est pas trouvée
+                return createDefaultIcon(width, height);
+            }
+        } catch (IOException e) {
+            System.err.println("Erreur lors du chargement de l'image: " + filename);
+            e.printStackTrace();
+            return createDefaultIcon(width, height);
+        }
+    }
+
+    /**
+     * Crée une icône par défaut en cas d'erreur de chargement
+     */
+    private ImageIcon createDefaultIcon(int width, int height) {
+        BufferedImage defaultImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = defaultImage.createGraphics();
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setColor(TEXT_GRAY);
+        g2d.fillOval(2, 2, width-4, height-4);
+        g2d.setColor(TEXT_WHITE);
+        g2d.drawOval(2, 2, width-4, height-4);
+        g2d.dispose();
+        return new ImageIcon(defaultImage);
+    }
+
+    /**
+     * Crée une icône d'œil barré pour le mot de passe masqué
+     */
+    private ImageIcon createEyeHiddenIcon() {
+        BufferedImage eyeHiddenImage = new BufferedImage(24, 24, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = eyeHiddenImage.createGraphics();
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        
+        // Dessiner un œil simple
+        g2d.setColor(TEXT_GRAY);
+        g2d.setStroke(new BasicStroke(2f));
+        
+        // Forme de l'œil
+        g2d.drawArc(4, 8, 16, 8, 0, 180);
+        g2d.drawArc(4, 8, 16, 8, 180, 180);
+        
+        // Pupille
+        g2d.fillOval(10, 10, 4, 4);
+        
+        // Ligne barrée
+        g2d.setColor(PINK_ACCENT);
+        g2d.setStroke(new BasicStroke(2.5f));
+        g2d.drawLine(2, 22, 22, 2);
+        
+        g2d.dispose();
+        return new ImageIcon(eyeHiddenImage);
+    }
+
     private void initializeComponents() {
         setTitle("Pressing Royal - Interface Moderne");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1400, 900);
+        setSize(10280, 720);  // Taille optimisée pour ordinateur portable
         setLocationRelativeTo(null);
-        setResizable(false);
+        setResizable(true);
+        setMinimumSize(new Dimension(1024, 600));  // Taille minimum réduite
 
         getContentPane().setBackground(DARK_BACKGROUND);
         setLayout(new BorderLayout());
@@ -65,7 +140,7 @@ public class LoginView extends JFrame {
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
-                // Dégradé de fond moderne
+                // Dégradé de fond moderne avec animation
                 GradientPaint gradient = new GradientPaint(
                     0, 0, DARK_BACKGROUND,
                     getWidth(), getHeight(), new Color(20, 25, 40)
@@ -73,11 +148,15 @@ public class LoginView extends JFrame {
                 g2d.setPaint(gradient);
                 g2d.fillRect(0, 0, getWidth(), getHeight());
 
-                // Effets lumineux d'arrière-plan
-                g2d.setColor(new Color(0, 255, 255, 10));
-                g2d.fillOval(-200, -200, 600, 600);
-                g2d.setColor(new Color(255, 20, 147, 8));
-                g2d.fillOval(getWidth()-400, getHeight()-400, 600, 600);
+                // Effets lumineux d'arrière-plan améliorés
+                g2d.setColor(new Color(0, 255, 255, 12));
+                g2d.fillOval(-300, -300, 800, 800);
+                g2d.setColor(new Color(255, 20, 147, 10));
+                g2d.fillOval(getWidth()-500, getHeight()-500, 800, 800);
+                
+                // Particules lumineuses additionnelles
+                g2d.setColor(new Color(138, 43, 226, 15));
+                g2d.fillOval(getWidth()/2-200, -100, 400, 400);
             }
         };
         mainPanel.setLayout(new GridBagLayout());
@@ -86,7 +165,7 @@ public class LoginView extends JFrame {
 
         JPanel contentPanel = new JPanel(new GridBagLayout());
         contentPanel.setOpaque(false);
-        contentPanel.setBorder(new EmptyBorder(50, 80, 50, 80));
+        contentPanel.setBorder(new EmptyBorder(20, 40, 20, 40));  // Espacement réduit
 
         JPanel presentationCard = createModernPresentationCard();
         gbc.gridx = 0;
@@ -94,13 +173,13 @@ public class LoginView extends JFrame {
         gbc.weightx = 1;
         gbc.weighty = 1;
         gbc.fill = GridBagConstraints.BOTH;
-        gbc.insets = new Insets(0, 0, 0, 30);
+        gbc.insets = new Insets(0, 0, 0, 15);  // Espacement réduit entre les cartes
         contentPanel.add(presentationCard, gbc);
 
         JPanel loginCard = createModernLoginCard();
         gbc.gridx = 1;
         gbc.gridy = 0;
-        gbc.insets = new Insets(0, 30, 0, 0);
+        gbc.insets = new Insets(0, 15, 0, 0);  // Espacement réduit
         contentPanel.add(loginCard, gbc);
 
         mainPanel.add(contentPanel);
@@ -115,36 +194,44 @@ public class LoginView extends JFrame {
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                // Bordure néon cyan
-                g2d.setStroke(new BasicStroke(2f));
-                g2d.setColor(CYAN_ACCENT);
-                g2d.drawRoundRect(1, 1, getWidth()-3, getHeight()-3, 25, 25);
+                // Effet de verre avec dégradé
+                GradientPaint glassGradient = new GradientPaint(
+                    0, 0, new Color(45, 52, 70, 200),
+                    0, getHeight(), new Color(30, 35, 50, 180)
+                );
+                g2d.setPaint(glassGradient);
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 30, 30);
 
-                // Fond avec transparence
-                g2d.setColor(new Color(45, 52, 70, 180));
-                g2d.fillRoundRect(2, 2, getWidth()-4, getHeight()-4, 25, 25);
+                // Bordure néon cyan avec effet de lueur
+                g2d.setStroke(new BasicStroke(3f));
+                g2d.setColor(new Color(0, 255, 255, 150));
+                g2d.drawRoundRect(2, 2, getWidth()-4, getHeight()-4, 30, 30);
 
-                // Effet de lueur
-                g2d.setColor(new Color(0, 255, 255, 30));
-                g2d.setStroke(new BasicStroke(4f));
-                g2d.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 25, 25);
+                // Effet de lueur externe
+                g2d.setColor(new Color(0, 255, 255, 50));
+                g2d.setStroke(new BasicStroke(6f));
+                g2d.drawRoundRect(-1, -1, getWidth()+2, getHeight()+2, 30, 30);
+
+                // Reflets de lumière
+                g2d.setColor(new Color(255, 255, 255, 30));
+                g2d.fillRoundRect(10, 10, getWidth()-20, 50, 20, 20);
             }
         };
 
         card.setOpaque(false);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(new EmptyBorder(80, 60, 80, 60));
+        card.setBorder(new EmptyBorder(40, 35, 40, 35));  // Espacement interne réduit
 
         JLabel titleLabel = new JLabel("Pressing Royal");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 48));
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 44));  // Taille réduite
         titleLabel.setForeground(TEXT_WHITE);
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel subtitleLabel = new JLabel("<html><center>L'Excellence Vestimentaire<br><span style='color: #00FFFF;'>Réinventée pour l'Ère Moderne</span></center></html>");
-        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 18));
+        JLabel subtitleLabel = new JLabel("<html><center>L'Excellence Vestimentaire<br><span style='color: #00FFFF; font-size: 18px;'>Réinventée pour l'Ère Moderne</span></center></html>");
+        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 20));
         subtitleLabel.setForeground(TEXT_GRAY);
         subtitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        subtitleLabel.setBorder(new EmptyBorder(20, 0, 40, 0));
+        subtitleLabel.setBorder(new EmptyBorder(15, 0, 35, 0));  // Espacement réduit
 
         // Panneaux de fonctionnalités avec style moderne
         JPanel featuresPanel = new JPanel();
@@ -152,15 +239,15 @@ public class LoginView extends JFrame {
         featuresPanel.setLayout(new BoxLayout(featuresPanel, BoxLayout.Y_AXIS));
 
         String[][] features = {
-            {"🚀", "Service Express", "Livraison en 24h"},
-            {"💎", "Qualité Premium", "Technologie avancée"},
-            {"⭐", "Expérience 5D", "Satisfaction garantie"}
+            {"rocket.png", "Service Express", "Livraison en 24h garantie"},
+            {"diamond.png", "Qualité Premium", "Technologie de pointe"},
+            {"star.png", "Expérience 5 ¬_¬", "Satisfaction client assurée"}
         };
 
         for (String[] feature : features) {
             JPanel featurePanel = createFeaturePanel(feature[0], feature[1], feature[2]);
             featuresPanel.add(featurePanel);
-            featuresPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+            featuresPanel.add(Box.createRigidArea(new Dimension(0, 15)));  // Espacement réduit
         }
 
         card.add(Box.createVerticalGlue());
@@ -172,7 +259,7 @@ public class LoginView extends JFrame {
         return card;
     }
 
-    private JPanel createFeaturePanel(String icon, String title, String description) {
+    private JPanel createFeaturePanel(String iconFile, String title, String description) {
         JPanel panel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -180,40 +267,49 @@ public class LoginView extends JFrame {
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                g2d.setColor(new Color(55, 65, 81, 150));
-                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
+                // Fond avec dégradé subtil
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, new Color(55, 65, 81, 180),
+                    getWidth(), getHeight(), new Color(45, 52, 70, 150)
+                );
+                g2d.setPaint(gradient);
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
 
-                g2d.setColor(new Color(75, 85, 99, 100));
-                g2d.setStroke(new BasicStroke(1f));
-                g2d.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 15, 15);
+                // Bordure avec lueur
+                g2d.setColor(new Color(75, 85, 99, 120));
+                g2d.setStroke(new BasicStroke(1.5f));
+                g2d.drawRoundRect(1, 1, getWidth()-2, getHeight()-2, 20, 20);
+
+                // Effet de lueur interne
+                g2d.setColor(new Color(255, 255, 255, 20));
+                g2d.fillRoundRect(5, 5, getWidth()-10, 20, 15, 15);
             }
         };
 
         panel.setOpaque(false);
         panel.setLayout(new BorderLayout());
-        panel.setBorder(new EmptyBorder(20, 25, 20, 25));
+        panel.setBorder(new EmptyBorder(25, 30, 25, 30));
 
-        JLabel iconLabel = new JLabel(icon);
-        iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 24));
+        JLabel iconLabel = new JLabel(loadIcon(iconFile, 32, 32));
 
         JPanel textPanel = new JPanel();
         textPanel.setOpaque(false);
         textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
 
         JLabel titleLabel = new JLabel(title);
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
         titleLabel.setForeground(TEXT_WHITE);
 
         JLabel descLabel = new JLabel(description);
-        descLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        descLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         descLabel.setForeground(TEXT_GRAY);
 
         textPanel.add(titleLabel);
-        textPanel.add(Box.createRigidArea(new Dimension(0, 3)));
+        textPanel.add(Box.createRigidArea(new Dimension(0, 5)));
         textPanel.add(descLabel);
 
         panel.add(iconLabel, BorderLayout.WEST);
-        panel.add(Box.createRigidArea(new Dimension(15, 0)), BorderLayout.CENTER);
+        panel.add(Box.createRigidArea(new Dimension(20, 0)), BorderLayout.CENTER);
         panel.add(textPanel, BorderLayout.EAST);
 
         return panel;
@@ -227,49 +323,55 @@ public class LoginView extends JFrame {
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
+                // Effet de verre avec dégradé
+                GradientPaint glassGradient = new GradientPaint(
+                    0, 0, new Color(45, 52, 70, 220),
+                    0, getHeight(), new Color(30, 35, 50, 200)
+                );
+                g2d.setPaint(glassGradient);
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 30, 30);
+
                 // Bordure néon magenta
-                g2d.setStroke(new BasicStroke(2f));
-                g2d.setColor(PINK_ACCENT);
-                g2d.drawRoundRect(1, 1, getWidth()-3, getHeight()-3, 25, 25);
+                g2d.setStroke(new BasicStroke(3f));
+                g2d.setColor(new Color(255, 20, 147, 150));
+                g2d.drawRoundRect(2, 2, getWidth()-4, getHeight()-4, 30, 30);
 
-                // Fond avec transparence
-                g2d.setColor(new Color(45, 52, 70, 200));
-                g2d.fillRoundRect(2, 2, getWidth()-4, getHeight()-4, 25, 25);
+                // Effet de lueur externe
+                g2d.setColor(new Color(255, 20, 147, 50));
+                g2d.setStroke(new BasicStroke(6f));
+                g2d.drawRoundRect(-1, -1, getWidth()+2, getHeight()+2, 30, 30);
 
-                // Effet de lueur
-                g2d.setColor(new Color(255, 20, 147, 30));
-                g2d.setStroke(new BasicStroke(4f));
-                g2d.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 25, 25);
+                // Reflets de lumière
+                g2d.setColor(new Color(255, 255, 255, 25));
+                g2d.fillRoundRect(10, 10, getWidth()-20, 50, 20, 20);
             }
         };
 
         card.setOpaque(false);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(new EmptyBorder(60, 60, 60, 60));
+        card.setBorder(new EmptyBorder(35, 40, 35, 40));  // Espacement interne réduit
 
         // En-tête
         JPanel headerPanel = new JPanel();
         headerPanel.setOpaque(false);
         headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
 
-        JLabel lockIcon = new JLabel("🔒");
-        lockIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 40));
-        lockIcon.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
 
         JLabel titleLabel = new JLabel("Connexion Sécurisée");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 30));  // Taille réduite
         titleLabel.setForeground(TEXT_WHITE);
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JLabel subtitleLabel = new JLabel("Accédez à votre espace personnel");
-        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 18));
         subtitleLabel.setForeground(TEXT_GRAY);
         subtitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        headerPanel.add(lockIcon);
-        headerPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+        
+        headerPanel.add(Box.createRigidArea(new Dimension(0, 15)));  // Espacement réduit
         headerPanel.add(titleLabel);
-        headerPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        headerPanel.add(Box.createRigidArea(new Dimension(0, 8)));   // Espacement réduit
         headerPanel.add(subtitleLabel);
 
         // Formulaire
@@ -277,38 +379,59 @@ public class LoginView extends JFrame {
         formPanel.setOpaque(false);
         formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
 
-        JLabel emailLabel = new JLabel("📧 Adresse Email");
-        emailLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        // Email field avec icône
+        JPanel emailLabelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        emailLabelPanel.setOpaque(false);
+        JLabel emailIcon = new JLabel(loadIcon("email.png", 20, 20));
+        JLabel emailLabel = new JLabel(" Adresse Email");
+        emailLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
         emailLabel.setForeground(TEXT_WHITE);
-        emailLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        emailLabelPanel.add(emailIcon);
+        emailLabelPanel.add(emailLabel);
 
         emailField = createModernTextField();
 
-        JLabel passwordLabel = new JLabel("🔑 Mot de Passe");
-        passwordLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        // Password field avec icône
+        JPanel passwordLabelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        passwordLabelPanel.setOpaque(false);
+        passwordLabelPanel.setBorder(new EmptyBorder(30, 0, 8, 0));
+        JLabel passwordIcon = new JLabel(loadIcon("key.png", 20, 20));
+        JLabel passwordLabel = new JLabel(" Mot de Passe");
+        passwordLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
         passwordLabel.setForeground(TEXT_WHITE);
-        passwordLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        passwordLabel.setBorder(new EmptyBorder(25, 0, 8, 0));
+        passwordLabelPanel.add(passwordIcon);
+        passwordLabelPanel.add(passwordLabel);
 
         passwordField = createModernPasswordField();
 
-        togglePasswordVisibilityButton = new JButton("👁️");
+        togglePasswordVisibilityButton = new JButton();
+        togglePasswordVisibilityButton.setIcon(loadIcon("eye.png", 24, 24));
         togglePasswordVisibilityButton.setOpaque(false);
         togglePasswordVisibilityButton.setBorder(null);
         togglePasswordVisibilityButton.setContentAreaFilled(false);
         togglePasswordVisibilityButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        togglePasswordVisibilityButton.setForeground(TEXT_GRAY);
+        togglePasswordVisibilityButton.setFocusPainted(false);
+        togglePasswordVisibilityButton.setToolTipText("Afficher le mot de passe");  // Tooltip initial
 
-        JPanel passwordPanel = new JPanel(new BorderLayout());
+        // Créer un panel avec layout null pour positionner l'icône à l'intérieur
+        JPanel passwordPanel = new JPanel();
         passwordPanel.setOpaque(false);
-        passwordPanel.add(passwordField, BorderLayout.CENTER);
-        passwordPanel.add(togglePasswordVisibilityButton, BorderLayout.EAST);
+        passwordPanel.setLayout(new OverlayLayout(passwordPanel));
+        
+        // Panel pour positionner l'icône à droite
+        JPanel iconPanel = new JPanel();
+        iconPanel.setOpaque(false);
+        iconPanel.setLayout(new FlowLayout(FlowLayout.RIGHT, 15, 15));  // Marge de 15px du bord droit
+        iconPanel.add(togglePasswordVisibilityButton);
+        
+        passwordPanel.add(iconPanel);  // Ajouter l'icône par-dessus
+        passwordPanel.add(passwordField);  // Ajouter le champ en arrière-plan
 
-        formPanel.add(emailLabel);
-        formPanel.add(Box.createRigidArea(new Dimension(0, 8)));
+        formPanel.add(emailLabelPanel);
+        formPanel.add(Box.createRigidArea(new Dimension(0, 10)));
         formPanel.add(emailField);
-        formPanel.add(passwordLabel);
-        formPanel.add(Box.createRigidArea(new Dimension(0, 8)));
+        formPanel.add(passwordLabelPanel);
+        formPanel.add(Box.createRigidArea(new Dimension(0, 10)));
         formPanel.add(passwordPanel);
 
         loginButton = createModernButton();
@@ -316,11 +439,11 @@ public class LoginView extends JFrame {
         JPanel linksPanel = createModernLinksPanel();
 
         card.add(headerPanel);
-        card.add(Box.createRigidArea(new Dimension(0, 40)));
+        card.add(Box.createRigidArea(new Dimension(0, 30)));  // Espacement réduit
         card.add(formPanel);
-        card.add(Box.createRigidArea(new Dimension(0, 35)));
+        card.add(Box.createRigidArea(new Dimension(0, 25)));  // Espacement réduit
         card.add(loginButton);
-        card.add(Box.createRigidArea(new Dimension(0, 25)));
+        card.add(Box.createRigidArea(new Dimension(0, 20)));  // Espacement réduit
         card.add(linksPanel);
 
         return card;
@@ -333,8 +456,20 @@ public class LoginView extends JFrame {
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                g2d.setColor(INPUT_BACKGROUND);
-                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                // Fond avec dégradé
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, INPUT_BACKGROUND,
+                    0, getHeight(), new Color(45, 52, 70)
+                );
+                g2d.setPaint(gradient);
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
+
+                // Bordure avec focus
+                if (hasFocus()) {
+                    g2d.setColor(CYAN_ACCENT);
+                    g2d.setStroke(new BasicStroke(2f));
+                    g2d.drawRoundRect(1, 1, getWidth()-2, getHeight()-2, 15, 15);
+                }
 
                 super.paintComponent(g);
             }
@@ -346,12 +481,13 @@ public class LoginView extends JFrame {
         field.setCaretColor(CYAN_ACCENT);
         field.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(INPUT_BORDER, 1),
-            new EmptyBorder(15, 20, 15, 20)
+            new EmptyBorder(18, 25, 18, 25)
         ));
-        field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+        field.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 55));
+        field.setPreferredSize(new Dimension(350, 55));  // Largeur cohérente avec le champ password
 
-        // Placeholder effect
+        // Placeholder effect amélioré
         field.setText("test@gmail.com");
         field.setForeground(TEXT_LIGHT_GRAY);
         
@@ -362,6 +498,7 @@ public class LoginView extends JFrame {
                     field.setText("");
                     field.setForeground(TEXT_WHITE);
                 }
+                field.repaint();
             }
             
             @Override
@@ -370,6 +507,7 @@ public class LoginView extends JFrame {
                     field.setText("test@gmail.com");
                     field.setForeground(TEXT_LIGHT_GRAY);
                 }
+                field.repaint();
             }
         });
 
@@ -383,8 +521,20 @@ public class LoginView extends JFrame {
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                g2d.setColor(INPUT_BACKGROUND);
-                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                // Fond avec dégradé
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, INPUT_BACKGROUND,
+                    0, getHeight(), new Color(45, 52, 70)
+                );
+                g2d.setPaint(gradient);
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
+
+                // Bordure avec focus
+                if (hasFocus()) {
+                    g2d.setColor(CYAN_ACCENT);
+                    g2d.setStroke(new BasicStroke(2f));
+                    g2d.drawRoundRect(1, 1, getWidth()-2, getHeight()-2, 15, 15);
+                }
 
                 super.paintComponent(g);
             }
@@ -397,61 +547,119 @@ public class LoginView extends JFrame {
         field.setEchoChar('•');
         field.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(INPUT_BORDER, 1),
-            new EmptyBorder(15, 20, 15, 20)
+            new EmptyBorder(18, 25, 18, 60)  // Padding à droite augmenté pour l'icône
         ));
-        field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+        field.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 55));
+        field.setPreferredSize(new Dimension(350, 55));  // Largeur augmentée
+
+        field.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                field.repaint();
+            }
+            
+            @Override
+            public void focusLost(FocusEvent e) {
+                field.repaint();
+            }
+        });
 
         return field;
     }
 
     private JButton createModernButton() {
-        JButton button = new JButton("🔐 Accéder à l'Espace Royal") {
+        JButton button = new JButton() {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
+                // Animation au survol
+                Color startColor = getModel().isRollover() ? 
+                    new Color(120, 169, 255) : BLUE_GRADIENT_START;
+                Color endColor = getModel().isRollover() ? 
+                    new Color(158, 63, 246) : BLUE_GRADIENT_END;
+
                 GradientPaint gradient = new GradientPaint(
-                    0, 0, BLUE_GRADIENT_START,
-                    getWidth(), getHeight(), BLUE_GRADIENT_END
+                    0, 0, startColor,
+                    getWidth(), getHeight(), endColor
                 );
                 g2d.setPaint(gradient);
-                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+
+                // Effet de lueur
+                if (getModel().isRollover()) {
+                    g2d.setColor(new Color(100, 149, 237, 100));
+                    g2d.setStroke(new BasicStroke(3f));
+                    g2d.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 18, 18);
+                }
 
                 super.paintComponent(g);
             }
         };
 
+        // Panneau pour l'icône et le texte
+        JPanel buttonContent = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        buttonContent.setOpaque(false);
+        
+        JLabel lockIcon = new JLabel(loadIcon("login.png", 24, 24));
+        JLabel buttonText = new JLabel("Accéder à l'Espace Royal");
+        buttonText.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        buttonText.setForeground(Color.WHITE);
+        
+        buttonContent.add(lockIcon);
+        buttonContent.add(buttonText);
+        
+        button.setLayout(new BorderLayout());
+        button.add(buttonContent, BorderLayout.CENTER);
         button.setOpaque(false);
         button.setContentAreaFilled(false);
-        button.setForeground(Color.WHITE);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        button.setBorder(new EmptyBorder(18, 25, 18, 25));
+        button.setBorder(new EmptyBorder(20, 30, 20, 30));
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.setAlignmentX(Component.CENTER_ALIGNMENT);
-        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 55));
+        button.setMaximumSize(new Dimension(350, 65));  // Largeur cohérente avec les champs
+        button.setPreferredSize(new Dimension(350, 65));
 
         return button;
     }
 
     private JPanel createModernLinksPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 25, 0));
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 30, 0));
         panel.setOpaque(false);
 
-        forgotPasswordLabel = new JLabel("🔄 Mot de passe oublié ?");
-        forgotPasswordLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        forgotPasswordLabel.setForeground(TEXT_GRAY);
+        // Mot de passe oublié avec icône
+        forgotPasswordLabel = new JLabel();
+        forgotPasswordLabel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 0));
+        JLabel resetIcon = new JLabel(loadIcon("reset.png", 16, 16));
+        JLabel resetText = new JLabel("Mot de passe oublié ?");
+        resetText.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        resetText.setForeground(TEXT_GRAY);
+        
+        JPanel resetPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
+        resetPanel.setOpaque(false);
+        resetPanel.add(resetIcon);
+        resetPanel.add(resetText);
+        forgotPasswordLabel.add(resetPanel);
         forgotPasswordLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         JLabel separatorLabel = new JLabel("•");
         separatorLabel.setForeground(TEXT_GRAY);
-        separatorLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        separatorLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
-        signupLabel = new JLabel("✨ Créer un compte");
-        signupLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        signupLabel.setForeground(TEXT_GRAY);
+        // Créer un compte avec icône
+        signupLabel = new JLabel();
+        JLabel signupIcon = new JLabel(loadIcon("signup.png", 16, 16));
+        JLabel signupText = new JLabel("Créer un compte");
+        signupText.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        signupText.setForeground(TEXT_GRAY);
+        
+        JPanel signupPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
+        signupPanel.setOpaque(false);
+        signupPanel.add(signupIcon);
+        signupPanel.add(signupText);
+        signupLabel.add(signupPanel);
         signupLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         panel.add(forgotPasswordLabel);
@@ -469,27 +677,26 @@ public class LoginView extends JFrame {
             }
         });
 
-        loginButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                // Effet de survol avec animation
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                // Retour à l'état normal
-            }
-        });
-
         togglePasswordVisibilityButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (passwordField.getEchoChar() == '•') {
+                    // Mot de passe visible
                     passwordField.setEchoChar((char) 0);
-                    togglePasswordVisibilityButton.setText("🙈");
+                    // Charger l'icône eye_hidden ou utiliser une icône par défaut
+                    ImageIcon hiddenIcon = loadIcon("eye_hidden.png", 24, 24);
+                    if (hiddenIcon != null) {
+                        togglePasswordVisibilityButton.setIcon(hiddenIcon);
+                    } else {
+                        // Fallback: créer une icône barrée
+                        togglePasswordVisibilityButton.setIcon(createEyeHiddenIcon());
+                    }
+                    togglePasswordVisibilityButton.setToolTipText("Masquer le mot de passe");
                 } else {
+                    // Mot de passe masqué
                     passwordField.setEchoChar('•');
-                    togglePasswordVisibilityButton.setText("👁️");
+                    togglePasswordVisibilityButton.setIcon(loadIcon("eye.png", 24, 24));
+                    togglePasswordVisibilityButton.setToolTipText("Afficher le mot de passe");
                 }
             }
         });
@@ -505,12 +712,18 @@ public class LoginView extends JFrame {
 
             @Override
             public void mouseEntered(MouseEvent e) {
-                forgotPasswordLabel.setForeground(CYAN_ACCENT);
+                Component[] components = ((JPanel)forgotPasswordLabel.getComponent(0)).getComponents();
+                if (components.length > 1 && components[1] instanceof JLabel) {
+                    ((JLabel)components[1]).setForeground(CYAN_ACCENT);
+                }
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-                forgotPasswordLabel.setForeground(TEXT_GRAY);
+                Component[] components = ((JPanel)forgotPasswordLabel.getComponent(0)).getComponents();
+                if (components.length > 1 && components[1] instanceof JLabel) {
+                    ((JLabel)components[1]).setForeground(TEXT_GRAY);
+                }
             }
         });
 
@@ -525,12 +738,18 @@ public class LoginView extends JFrame {
 
             @Override
             public void mouseEntered(MouseEvent e) {
-                signupLabel.setForeground(PINK_ACCENT);
+                Component[] components = ((JPanel)signupLabel.getComponent(0)).getComponents();
+                if (components.length > 1 && components[1] instanceof JLabel) {
+                    ((JLabel)components[1]).setForeground(PINK_ACCENT);
+                }
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-                signupLabel.setForeground(TEXT_GRAY);
+                Component[] components = ((JPanel)signupLabel.getComponent(0)).getComponents();
+                if (components.length > 1 && components[1] instanceof JLabel) {
+                    ((JLabel)components[1]).setForeground(TEXT_GRAY);
+                }
             }
         });
 
