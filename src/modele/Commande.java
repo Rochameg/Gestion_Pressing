@@ -1,132 +1,158 @@
-package modele; // Généralement, les classes de modèle sont placées dans un package 'models' ou 'entity'
-
-import java.time.LocalDate; // Pour gérer la date de commande
+package modele;
+import java.util.Date;
 
 public class Commande {
-
-    private int idCommande;
-    private int idClient; // Clé étrangère vers la table Clients
-    private LocalDate dateCommande;
-    private String statutCommande; // Ex: "En attente", "En cours", "Terminée", "Annulée"
-    private double montantTotal;
-    private String serviceDemande; // Ex: "Lavage à sec", "Repassage", "Nettoyage humide", "Retouches"
-    private String modePaiement; // Ex: "Espèces", "Carte bancaire", "Mobile Money"
-    private LocalDate dateLivraisonPrevue; // Optionnel : date de livraison estimée
-    private LocalDate dateLivraisonEffective; // Optionnel : date de livraison réelle
-
-    // Constructeur complet
-    public Commande(int idCommande, int idClient, LocalDate dateCommande, String statutCommande,
-            double montantTotal, String serviceDemande, String modePaiement,
-            LocalDate dateLivraisonPrevue, LocalDate dateLivraisonEffective) {
-        this.idCommande = idCommande;
-        this.idClient = idClient;
-        this.dateCommande = dateCommande;
-        this.statutCommande = statutCommande;
-        this.montantTotal = montantTotal;
-        this.serviceDemande = serviceDemande;
-        this.modePaiement = modePaiement;
-        this.dateLivraisonPrevue = dateLivraisonPrevue;
-        this.dateLivraisonEffective = dateLivraisonEffective;
+    private int id;
+    private int client_id;
+    private Date date_reception;
+    private Date date_livraison;
+    private String statut;
+    private String article;
+    private double total;
+    private String priorite;
+    
+    // Champs pour afficher les informations complètes du client
+    private String clientNomComplet;
+    private String clientEmail;
+    private String clientTelephone;
+    private String clientAdresse;
+    
+    // Constructeur principal (utilisé par le DAO)
+    public Commande(int id, int client_id, Date date_reception, Date date_livraison, 
+                   String statut, String article, double total, String priorite) {
+        this.id = id;
+        this.client_id = client_id;
+        this.date_reception = date_reception;
+        this.date_livraison = date_livraison;
+        this.statut = statut;
+        this.article = article;
+        this.total = total;
+        this.priorite = priorite;
+        this.clientNomComplet = ""; // Par défaut vide
+        this.clientEmail = "";
+        this.clientTelephone = "";
+        this.clientAdresse = "";
     }
-
-    // Constructeur simplifié (par exemple, pour une nouvelle commande sans ID ni
-    // dates de livraison finales)
-    public Commande(int idClient, int aInt1, LocalDate dateCommande, String statutCommande, double montantTotal) {
-        this.idClient = idClient;
-        this.dateCommande = dateCommande;
-        this.statutCommande = statutCommande;
-        this.montantTotal = montantTotal;
-        this.serviceDemande = serviceDemande;
-        this.modePaiement = modePaiement;
+    
+    // Constructeur pour créer de nouvelles commandes
+    public Commande(int client_id, Date date_reception, Date date_livraison, 
+                   String statut, String article, double total, String priorite) {
+        this.client_id = client_id;
+        this.date_reception = date_reception;
+        this.date_livraison = date_livraison;
+        this.statut = statut;
+        this.article = article;
+        this.total = total;
+        this.priorite = priorite;
+        this.clientNomComplet = "";
+        this.clientEmail = "";
+        this.clientTelephone = "";
+        this.clientAdresse = "";
     }
-
-    // --- Getters ---
-    public int getIdCommande() {
-        return idCommande;
+    
+    // Getters et Setters existants
+    public int getId() {
+        return id;
     }
-
-    public int getIdClient() {
-        return idClient;
+    public void setId(int id) {
+        this.id = id;
     }
-
-    public LocalDate getDateCommande() {
-        return dateCommande;
+    public int getClient_id() {
+        return client_id;
     }
-
-    public String getStatutCommande() {
-        return statutCommande;
+    public void setClient_id(int client_id) {
+        this.client_id = client_id;
     }
-
-    public double getMontantTotal() {
-        return montantTotal;
+    public Date getDate_reception() {
+        return date_reception;
     }
-
-    public String getServiceDemande() {
-        return serviceDemande;
+    public void setDate_reception(Date date_reception) {
+        this.date_reception = date_reception;
     }
-
-    public String getModePaiement() {
-        return modePaiement;
+    public Date getDate_livraison() {
+        return date_livraison;
     }
-
-    public LocalDate getDateLivraisonPrevue() {
-        return dateLivraisonPrevue;
+    public void setDate_livraison(Date date_livraison) {
+        this.date_livraison = date_livraison;
     }
-
-    public LocalDate getDateLivraisonEffective() {
-        return dateLivraisonEffective;
+    public String getStatut() {
+        return statut;
     }
-
-    // --- Setters (si vous avez besoin de modifier les champs après la création de
-    // l'objet) ---
-    public void setIdCommande(int idCommande) {
-        this.idCommande = idCommande;
+    public void setStatut(String statut) {
+        this.statut = statut;
     }
-
-    public void setIdClient(int idClient) {
-        this.idClient = idClient;
+    public String getArticle() {
+        return article;
     }
-
-    public void setDateCommande(LocalDate dateCommande) {
-        this.dateCommande = dateCommande;
+    public void setArticle(String article) {
+        this.article = article;
     }
-
-    public void setStatutCommande(String statutCommande) {
-        this.statutCommande = statutCommande;
+    public double getTotal() {
+        return total;
     }
-
-    public void setMontantTotal(double montantTotal) {
-        this.montantTotal = montantTotal;
+    public void setTotal(double total) {
+        this.total = total;
     }
-
-    public void setServiceDemande(String serviceDemande) {
-        this.serviceDemande = serviceDemande;
+    public String getPriorite() {
+        return priorite;
     }
-
-    public void setModePaiement(String modePaiement) {
-        this.modePaiement = modePaiement;
+    public void setPriorite(String priorite) {
+        this.priorite = priorite;
     }
-
-    public void setDateLivraisonPrevue(LocalDate dateLivraisonPrevue) {
-        this.dateLivraisonPrevue = dateLivraisonPrevue;
+    
+    // Getters/Setters pour les informations complètes du client
+    public String getClientNomComplet() {
+        return clientNomComplet;
     }
-
-    public void setDateLivraisonEffective(LocalDate dateLivraisonEffective) {
-        this.dateLivraisonEffective = dateLivraisonEffective;
+    public void setClientNomComplet(String clientNomComplet) {
+        this.clientNomComplet = clientNomComplet;
     }
-
+    
+    public String getClientEmail() {
+        return clientEmail;
+    }
+    public void setClientEmail(String clientEmail) {
+        this.clientEmail = clientEmail;
+    }
+    
+    public String getClientTelephone() {
+        return clientTelephone;
+    }
+    public void setClientTelephone(String clientTelephone) {
+        this.clientTelephone = clientTelephone;
+    }
+    
+    public String getClientAdresse() {
+        return clientAdresse;
+    }
+    public void setClientAdresse(String clientAdresse) {
+        this.clientAdresse = clientAdresse;
+    }
+    
+    // Méthode utilitaire pour obtenir l'affichage du client (nom complet ou ID)
+    public String getClientDisplay() {
+        if (clientNomComplet != null && !clientNomComplet.trim().isEmpty()) {
+            return clientNomComplet;
+        } else {
+            return "Client #" + client_id;
+        }
+    }
+    
     @Override
     public String toString() {
         return "Commande{" +
-                "idCommande=" + idCommande +
-                ", idClient=" + idClient +
-                ", dateCommande=" + dateCommande +
-                ", statutCommande='" + statutCommande + '\'' +
-                ", montantTotal=" + montantTotal +
-                ", serviceDemande='" + serviceDemande + '\'' +
-                ", modePaiement='" + modePaiement + '\'' +
-                ", dateLivraisonPrevue=" + dateLivraisonPrevue +
-                ", dateLivraisonEffective=" + dateLivraisonEffective +
+                "id=" + id +
+                ", client_id=" + client_id +
+                ", clientNomComplet='" + clientNomComplet + '\'' +
+                ", clientEmail='" + clientEmail + '\'' +
+                ", clientTelephone='" + clientTelephone + '\'' +
+                ", clientAdresse='" + clientAdresse + '\'' +
+                ", date_reception=" + date_reception +
+                ", date_livraison=" + date_livraison +
+                ", statut='" + statut + '\'' +
+                ", article='" + article + '\'' +
+                ", total=" + total +
+                ", priorite='" + priorite + '\'' +
                 '}';
     }
 }

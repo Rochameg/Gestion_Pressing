@@ -52,7 +52,7 @@ public class DashboardView extends JFrame {
 
     private Connection dbConnection;
 
-    public DashboardView() {
+    public DashboardView() throws SQLException {
         try {
             this.dbConnection = DatabaseConnection.getConnection();
         } catch (SQLException ex) {
@@ -267,7 +267,11 @@ public class DashboardView extends JFrame {
                             Component[] components = mainContentPanel.getComponents();
                             for (Component comp : components) {
                                 if (comp instanceof CommandeView) {
-                                    ((CommandeView) comp).loadCommandeData();
+                                    try {
+                                        ((CommandeView) comp).loadCommandeData();
+                                    } catch (SQLException ex) {
+                                        Logger.getLogger(DashboardView.class.getName()).log(Level.SEVERE, null, ex);
+                                    }
                                     break;
                                 }
                             }
@@ -601,12 +605,6 @@ public class DashboardView extends JFrame {
         JPanel bottomPanel = new JPanel(new GridLayout(1, 3, 10, 30)); // Grille 1x2 pour les tableaux
         bottomPanel.setOpaque(false);
 
-        JPanel recentOrdersPanel = createModernCard("Commandes Récentes", createRecentOrdersTable());
-        bottomPanel.add(recentOrdersPanel);
-
-        JPanel lowStockPanel = createModernCard("Articles en Stock Bas", createLowStockTable());
-        bottomPanel.add(lowStockPanel);
-
         content.add(bottomPanel, BorderLayout.SOUTH);
 
         return content;
@@ -846,56 +844,8 @@ public class DashboardView extends JFrame {
         return chartPanel;
     }
 
-    private JScrollPane createRecentOrdersTable() {
-        String[] columnNames = { "ID Commande", "Client", "Statut", "Montant" };
-        // Remplacez par des données réelles
-        Object[][] data = {
-                { "C001", "Jean Dupont", "En cours", "15.000 FCFA" },
-                { "C002", "Marie Curie", "Terminée", "22.500 FCFA" },
-                { "C003", "Paul Smith", "En attente", "10.000 FCFA" },
-                { "C004", "Alice Wonderland", "Terminée", "30.000 FCFA" }
-        };
-
-        DefaultTableModel model = new DefaultTableModel(data, columnNames) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false; // Rendre les cellules non éditables
-            }
-        };
-        JTable table = new JTable(model);
-        styleTable(table); // Utilisation de la méthode de style existante
-
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240)));
-        scrollPane.setPreferredSize(new Dimension(400, 200)); // Taille suggérée
-        return scrollPane;
-    }
-
-    private JScrollPane createLowStockTable() {
-        String[] columnNames = { "ID Produit", "Nom Produit", "Quantité" };
-        // Remplacez par des données réelles (ex: items dont la quantité est < un seuil)
-        Object[][] data = {
-                { "P005", "Détachant", "5" },
-                { "P012", "Sacs Plastique", "20" },
-                { "P002", "Lessive Bio", "3" }
-        };
-
-        DefaultTableModel model = new DefaultTableModel(data, columnNames) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        JTable table = new JTable(model);
-        styleTable(table);
-
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240)));
-        scrollPane.setPreferredSize(new Dimension(400, 200)); // Taille suggérée
-        return scrollPane;
-    }
+    
+    
 
     // Réutilisation de la méthode de style de table existante
     private void styleTable(JTable table) {
@@ -945,7 +895,11 @@ public class DashboardView extends JFrame {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            new DashboardView();
+            try {
+                new DashboardView();
+            } catch (SQLException ex) {
+                Logger.getLogger(DashboardView.class.getName()).log(Level.SEVERE, null, ex);
+            }
         });
     }
 }

@@ -14,6 +14,8 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import javax.imageio.ImageIO;
 import Utils.DatabaseConnection;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 public class LoginView extends JFrame {
@@ -485,7 +487,7 @@ public class LoginView extends JFrame {
         ));
         field.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 55));
-        field.setPreferredSize(new Dimension(350, 60));  // Largeur cohérente avec le champ password
+        field.setMaximumSize(new Dimension(Short.MAX_VALUE, 55));;  // Largeur cohérente avec le champ password
 
         // Placeholder effect amélioré
         field.setText("test@gmail.com");
@@ -797,7 +799,11 @@ public class LoginView extends JFrame {
                         System.out.println("Connexion réussie pour : " + email);
 
                         SwingUtilities.invokeLater(() -> {
-                            new DashboardView().setVisible(true);
+                            try {
+                                new DashboardView().setVisible(true);
+                            } catch (SQLException ex) {
+                                Logger.getLogger(LoginView.class.getName()).log(Level.SEVERE, null, ex);
+                            }
                             dispose();
                         });
                     } else {
