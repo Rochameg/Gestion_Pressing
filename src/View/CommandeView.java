@@ -145,7 +145,7 @@ public class CommandeView extends JPanel {
         titlePanel.add(subtitleLabel);
 
         JButton nouvelleCommandeBtn = createPrimaryButton("+ Nouvelle commande");
-        nouvelleCommandeBtn.addActionListener(e -> NouvelleCommandeModal());
+        //nouvelleCommandeBtn.addActionListener(e -> NouvelleCommandeModal());
 
         panel.add(titlePanel, BorderLayout.WEST);
         panel.add(nouvelleCommandeBtn, BorderLayout.EAST);
@@ -702,9 +702,9 @@ public class CommandeView extends JPanel {
         return createStyledButton(text, Color.WHITE, lightText, new Dimension(100, 40), 6, icon);
     }
 
-    private void NouvelleCommandeModal() {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
+    //private void NouvelleCommandeModal() {
+        //throw new UnsupportedOperationException("Not supported yet.");
+    //}
 
     class StatusRenderer extends JPanel implements TableCellRenderer {
         private JLabel label;
