@@ -1,14 +1,16 @@
 package dao;
 
+import Utils.DatabaseConnection;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import modele.Commande;
+import modele.Client;
 
 public class CommandeDAO {
-    private Connection connection;
+    private final Connection connection;
     private static final Logger LOGGER = Logger.getLogger(CommandeDAO.class.getName());
     
     // Requêtes préparées pour de meilleures performances
@@ -124,35 +126,38 @@ public class CommandeDAO {
      * @throws SQLException
      */
     public int createCommande(Commande commande) throws SQLException {
-        if (commande == null) {
-            throw new IllegalArgumentException("La commande ne peut pas être null");
-        }
-        
-        validateCommande(commande);
-        
-        String query = "INSERT INTO commandes (client_id, date_reception, date_livraison, statut, article, total, priorite) " +
-                      "VALUES (?, ?, ?, ?, ?, ?, ?)";
-        
-        try (PreparedStatement pstmt = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
-            setCommandeParameters(pstmt, commande, false);
-            
-            int affectedRows = pstmt.executeUpdate();
-            
-            if (affectedRows > 0) {
-                try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
-                    if (generatedKeys.next()) {
-                        int newId = generatedKeys.getInt(1);
-                        LOGGER.info("Commande créée avec succès - ID: " + newId);
-                        return newId;
-                    }
+    if (commande == null) {
+        throw new IllegalArgumentException("La commande ne peut pas être null");
+    }
+
+    validateCommande(commande);
+
+    String query = "INSERT INTO commandes (client_id, date_reception, date_livraison, statut, article, total, priorite) " +
+                   "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+    try (Connection conn = DatabaseConnection.getConnection(); // Remplace ici
+         PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+
+        setCommandeParameters(pstmt, commande, false);
+
+        int affectedRows = pstmt.executeUpdate();
+
+        if (affectedRows > 0) {
+            try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    int newId = generatedKeys.getInt(1);
+                    LOGGER.info("Commande créée avec succès - ID: " + newId);
+                    return newId;
                 }
             }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Erreur lors de la création de la commande", e);
-            throw e;
         }
-        return -1;
+    } catch (SQLException e) {
+        LOGGER.log(Level.SEVERE, "Erreur lors de la création de la commande", e);
+        throw e;
     }
+
+    return -1;
+}
     
     /**
      * Met à jour une commande existante
@@ -169,6 +174,7 @@ public class CommandeDAO {
         }
         
         validateCommande(commande);
+        
         
         String query = "UPDATE commandes SET client_id = ?, date_reception = ?, date_livraison = ?, " +
                       "statut = ?, article = ?, total = ?, priorite = ? WHERE id = ?";
@@ -511,7 +517,7 @@ public class CommandeDAO {
             commande.setClientTelephone(telephone != null ? telephone : "Non renseigné");
             commande.setClientAdresse(adresse != null ? adresse : "Non renseignée");
         } else {
-            commande.setClientNomComplet("Client #" + rs.getInt("client_id"));
+            commande.setClientNomComplet("Client CMD-000" + rs.getInt("client_id"));
             commande.setClientEmail("Non disponible");
             commande.setClientTelephone("Non disponible");
             commande.setClientAdresse("Non disponible");
@@ -561,32 +567,131 @@ public class CommandeDAO {
             throw new IllegalArgumentException("La priorité ne peut pas être vide");
         }
     }
-    
+
+    public int createClient(Client client) throws SQLException {
+        String sql = "INSERT INTO clients (nom, prenom, email, telephone, adresse) VALUES (?, ?, ?, ?, ?)";
+
+        try (Connection conn = DatabaseConnection.getConnection();  // nouvelle connexion
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
+            stmt.setString(1, client.getNom());
+            stmt.setString(2, client.getPrenom());
+            stmt.setString(3, client.getEmail());
+            stmt.setString(4, client.getTelephone());
+            stmt.setString(5, client.getAdresse());
+
+            int affectedRows = stmt.executeUpdate();
+
+            if (affectedRows == 0) {
+                throw new SQLException("Échec de la création du client, aucune ligne affectée.");
+            }
+
+            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    return generatedKeys.getInt(1); // retourne l'ID généré
+                } else {
+                    throw new SQLException("Échec de la création du client, aucun ID généré.");
+                }
+            }
+        }
+    }
+
+
+
+    public boolean emailExiste(String email) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM clients WHERE email = ?";
+        try (Connection conn = connection;
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, email);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() && rs.getInt(1) > 0;
+            }
+        }
+    }
+
+    public Client getClientByEmail(String email) throws SQLException {
+    String sql = "SELECT * FROM clients WHERE email = ?";
+    try (Connection conn = connection;
+         PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+        stmt.setString(1, email);
+        try (ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                return new Client(
+                   rs.getInt("id"),
+                   rs.getString("nom"),
+                   rs.getString("prenom"),
+                   rs.getString("email"),
+                   rs.getString("telephone"),
+                   rs.getString("adresse")
+               );
+
+            }
+        }
+    }
+    return null;
+}
+
+
+
     // Classe interne pour représenter un client simplifié
+   
     public static class Client {
         private int id;
         private String nom;
         private String prenom;
-        
-        public Client(int id, String nom, String prenom) {
+        private String email;
+        private String telephone;
+        private String adresse;
+
+        public Client(int id, String nom, String prenom, String email, String telephone, String adresse) {
             this.id = id;
             this.nom = nom != null ? nom : "";
             this.prenom = prenom != null ? prenom : "";
+            this.email = email != null ? email : "";
+            this.telephone = telephone != null ? telephone : "";
+            this.adresse = adresse != null ? adresse : "";
         }
-        
+
+
+        public Client(String nom, String prenom, String email, String telephone, String adresse) {
+            this.id = id;
+            this.nom = nom != null ? nom : "";
+            this.prenom = prenom != null ? prenom : "";
+            this.email = email != null ? email : "";
+            this.telephone = telephone != null ? telephone : "";
+            this.adresse = adresse != null ? adresse : "";
+        }
+
+        public Client(int id, String nom, String prenom) {
+            this(id, nom, prenom, "", "", "");
+        }
+
+        // Getters
         public int getId() { return id; }
         public String getNom() { return nom; }
         public String getPrenom() { return prenom; }
-        
+        public String getEmail() { return email; }
+        public String getTelephone() { return telephone; }
+        public String getAdresse() { return adresse; }
+
+        // Setters
+        public void setId(int id) { this.id = id; }
+        public void setNom(String nom) { this.nom = nom; }
+        public void setPrenom(String prenom) { this.prenom = prenom; }
+        public void setEmail(String email) { this.email = email; }
+        public void setTelephone(String telephone) { this.telephone = telephone; }
+        public void setAdresse(String adresse) { this.adresse = adresse; }
+
         public String getNomComplet() {
             return prenom + " " + nom;
         }
-        
+
         @Override
         public String toString() {
             return getNomComplet() + " (ID: " + id + ")";
         }
-        
+
         @Override
         public boolean equals(Object obj) {
             if (this == obj) return true;
@@ -594,10 +699,11 @@ public class CommandeDAO {
             Client client = (Client) obj;
             return id == client.id;
         }
-        
+
         @Override
         public int hashCode() {
             return Integer.hashCode(id);
         }
     }
+
 }

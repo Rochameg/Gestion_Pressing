@@ -18,8 +18,7 @@ public class Commande {
     private String clientAdresse;
     
     // Constructeur principal (utilisé par le DAO)
-    public Commande(int id, int client_id, Date date_reception, Date date_livraison, 
-                   String statut, String article, double total, String priorite) {
+    public Commande(int id, int client_id, Date date_reception, Date date_livraison, String statut, String article, double total, String priorite) {
         this.id = id;
         this.client_id = client_id;
         this.date_reception = date_reception;
@@ -134,7 +133,7 @@ public class Commande {
         if (clientNomComplet != null && !clientNomComplet.trim().isEmpty()) {
             return clientNomComplet;
         } else {
-            return "Client #" + client_id;
+            return "Client CMD-000" + client_id;
         }
     }
     

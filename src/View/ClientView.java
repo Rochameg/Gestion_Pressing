@@ -1,7 +1,7 @@
 package View;
 
 /**
- * Interface moderne de gestion des clients avec design amélioré
+ * Interface moderne de gestion des clients avec CRUD complet
  * @author Megui_rocha 🐶🐶..!!
  */
 import dao.ClientDAO;
@@ -233,7 +233,7 @@ public class ClientView extends JPanel {
     }
 
     private void createTable() {
-        String[] columnNames = {"N°facture", "Nom", "Prénom", "Téléphone", "Email", "Adresse", "Actions"};
+        String[] columnNames = {"ID", "Nom", "Prénom", "Téléphone", "Email", "Adresse", "Actions"};
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -316,9 +316,9 @@ public class ClientView extends JPanel {
             setLayout(new FlowLayout(FlowLayout.CENTER, 3, 8));
             setOpaque(true);
 
-            viewBtn = createIconButton("src/images/voir_icon.png", new Color(59, 130, 246));
-            editBtn = createIconButton("src/images/modifier_icon.png", primaryColor);
-            deleteBtn = createIconButton("src/images/supprimer_icon.png", accentColor);
+            viewBtn = createIconButton("👁️", new Color(59, 130, 246), "Voir");
+            editBtn = createIconButton("✏️", primaryColor, "Modifier");
+            deleteBtn = createIconButton("🗑️", accentColor, "Supprimer");
 
             add(viewBtn);
             add(editBtn);
@@ -351,9 +351,9 @@ public class ClientView extends JPanel {
             panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 3, 8));
             panel.setOpaque(true);
 
-            viewBtn = createIconButton("src/images/voir_icon.png", new Color(59, 130, 246));
-            editBtn = createIconButton("src/images/modifier_icon.png", primaryColor);
-            deleteBtn = createIconButton("src/images/supprimer_icon.png", accentColor);
+            viewBtn = createIconButton("👁️", new Color(59, 130, 246), "Voir");
+            editBtn = createIconButton("✏️", primaryColor, "Modifier");
+            deleteBtn = createIconButton("🗑️", accentColor, "Supprimer");
 
             viewBtn.addActionListener(e -> viewClient());
             editBtn.addActionListener(e -> editClient());
@@ -373,40 +373,115 @@ public class ClientView extends JPanel {
         }
 
         private void viewClient() {
-            // Récupérer les données du client depuis la table
-            String clientId = tableModel.getValueAt(currentRow, 0).toString();
-            String nom = tableModel.getValueAt(currentRow, 1).toString();
-            String prenom = tableModel.getValueAt(currentRow, 2).toString();
-            String telephone = tableModel.getValueAt(currentRow, 3).toString();
-            String email = tableModel.getValueAt(currentRow, 4).toString();
-            String adresse = tableModel.getValueAt(currentRow, 5).toString();
-            
-            // Créer et afficher le modal de détails
-            JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(ClientView.this);
-            ClientDetailsModal detailsModal = new ClientDetailsModal(parentFrame, clientId, nom, prenom, telephone, email, adresse);
-            detailsModal.setVisible(true);
-            
+            // Arrêter l'édition d'abord
             fireEditingStopped();
+            
+            // Vérifier que la ligne est valide
+            if (currentRow < 0 || currentRow >= tableModel.getRowCount()) {
+                JOptionPane.showMessageDialog(ClientView.this, 
+                    "Ligne invalide sélectionnée!", "Erreur", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            try {
+                int clientId = Integer.parseInt(tableModel.getValueAt(currentRow, 0).toString());
+                Client client = clientDAO.obtenirClientParId(clientId);
+                
+                if (client != null) {
+                    JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(ClientView.this);
+                    ClientDetailsModal detailsModal = new ClientDetailsModal(parentFrame, client);
+                    detailsModal.setVisible(true);
+                } else {
+                    JOptionPane.showMessageDialog(ClientView.this, 
+                        "Client introuvable!", "Erreur", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(ClientView.this, 
+                    "Erreur lors de l'affichage du client: " + ex.getMessage(), 
+                    "Erreur", JOptionPane.ERROR_MESSAGE);
+            }
         }
 
         private void editClient() {
-            // Logique d'édition
+            // Arrêter l'édition d'abord
             fireEditingStopped();
+            
+            // Vérifier que la ligne est valide
+            if (currentRow < 0 || currentRow >= tableModel.getRowCount()) {
+                JOptionPane.showMessageDialog(ClientView.this, 
+                    "Ligne invalide sélectionnée!", "Erreur", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            try {
+                int clientId = Integer.parseInt(tableModel.getValueAt(currentRow, 0).toString());
+                Client client = clientDAO.obtenirClientParId(clientId);
+                
+                if (client != null) {
+                    JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(ClientView.this);
+                    ClientFormModal editModal = new ClientFormModal(parentFrame, client, clientDAO);
+                    editModal.setVisible(true);
+                    
+                    if (editModal.isClientSaved()) {
+                        // Recharger les données après modification
+                        SwingUtilities.invokeLater(() -> {
+                            loadClientData();
+                            JOptionPane.showMessageDialog(ClientView.this, 
+                                "Client modifié avec succès!", "Succès", JOptionPane.INFORMATION_MESSAGE);
+                        });
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(ClientView.this, 
+                        "Client introuvable!", "Erreur", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(ClientView.this, 
+                    "Erreur lors de la modification: " + ex.getMessage(), 
+                    "Erreur", JOptionPane.ERROR_MESSAGE);
+            }
         }
 
         private void deleteClient() {
+            // Arrêter l'édition d'abord pour éviter les conflits
+            fireEditingStopped();
+            
+            // Vérifier que la ligne est valide
+            if (currentRow < 0 || currentRow >= tableModel.getRowCount()) {
+                JOptionPane.showMessageDialog(ClientView.this, 
+                    "Ligne invalide sélectionnée!", "Erreur", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
             int option = JOptionPane.showConfirmDialog(
                 ClientView.this,
-                "Êtes-vous sûr de vouloir supprimer ce client ?",
-                "Confirmation",
-                JOptionPane.YES_NO_OPTION
+                "Êtes-vous sûr de vouloir supprimer ce client ?\nCette action est irréversible.",
+                "Confirmation de suppression",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
             );
             
             if (option == JOptionPane.YES_OPTION) {
-                // Logique de suppression
-                loadClientData(); // Recharger après suppression
+                try {
+                    int clientId = Integer.parseInt(tableModel.getValueAt(currentRow, 0).toString());
+                    boolean success = clientDAO.supprimerClient(clientId);
+                    
+                    if (success) {
+                        // Recharger les données après suppression
+                        SwingUtilities.invokeLater(() -> {
+                            loadClientData();
+                            JOptionPane.showMessageDialog(ClientView.this, 
+                                "Client supprimé avec succès!", "Succès", JOptionPane.INFORMATION_MESSAGE);
+                        });
+                    } else {
+                        JOptionPane.showMessageDialog(ClientView.this, 
+                            "Erreur lors de la suppression du client!", "Erreur", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(ClientView.this, 
+                        "Erreur lors de la suppression: " + ex.getMessage(), 
+                        "Erreur", JOptionPane.ERROR_MESSAGE);
+                }
             }
-            fireEditingStopped();
         }
 
         @Override
@@ -415,8 +490,8 @@ public class ClientView extends JPanel {
         }
     }
 
-    private JButton createIconButton(String imagePath, Color color) {
-        JButton button = new JButton() {
+    private JButton createIconButton(String icon, Color color, String tooltip) {
+        JButton button = new JButton(icon) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2d = (Graphics2D) g.create();
@@ -433,22 +508,14 @@ public class ClientView extends JPanel {
             }
         };
 
-        // Charger l'icône depuis le chemin d'image
-        try {
-            ImageIcon icon = new ImageIcon(imagePath);
-            // Redimensionner l'icône à 16x16 pixels
-            Image img = icon.getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
-            button.setIcon(new ImageIcon(img));
-        } catch (Exception e) {
-            // En cas d'erreur, bouton vide (pas d'icône fallback)
-            System.out.println("Impossible de charger l'icône: " + imagePath);
-        }
-
+        button.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        button.setForeground(Color.WHITE);
         button.setPreferredSize(new Dimension(32, 32));
         button.setContentAreaFilled(false);
         button.setBorderPainted(false);
         button.setFocusPainted(false);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.setToolTipText(tooltip);
 
         return button;
     }
@@ -497,11 +564,16 @@ public class ClientView extends JPanel {
 
     private void openNewClientModal() {
         JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
-        NouveauClientModal modal = new NouveauClientModal(parentFrame);
+        ClientFormModal modal = new ClientFormModal(parentFrame, null, clientDAO);
         modal.setVisible(true);
         
-        if (modal.isClientAdded()) {
-            loadClientData();
+        if (modal.isClientSaved()) {
+            // Recharger les données après ajout
+            SwingUtilities.invokeLater(() -> {
+                loadClientData();
+                JOptionPane.showMessageDialog(this, 
+                    "Client ajouté avec succès!", "Succès", JOptionPane.INFORMATION_MESSAGE);
+            });
         }
     }
 
@@ -583,250 +655,5 @@ public class ClientView extends JPanel {
         
         revalidate();
         repaint();
-    }
-}
-
-/**
- * Modal pour afficher les détails complets d'un client
- */
-class ClientDetailsModal extends JDialog {
-    private final Color primaryColor = new Color(99, 102, 241);
-    private final Color backgroundColor = new Color(248, 250, 252);
-    private final Color cardBackground = Color.WHITE;
-    private final Color textPrimary = new Color(15, 23, 42);
-    private final Color textSecondary = new Color(100, 116, 139);
-    private final Color borderColor = new Color(226, 232, 240);
-
-    public ClientDetailsModal(JFrame parent, String clientId, String nom, String prenom, 
-                             String telephone, String email, String adresse) {
-        super(parent, "Détails du Client", true);
-        
-        setSize(500, 600);
-        setLocationRelativeTo(parent);
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        
-        initComponents(clientId, nom, prenom, telephone, email, adresse);
-    }
-
-    private void initComponents(String clientId, String nom, String prenom, 
-                               String telephone, String email, String adresse) {
-        setLayout(new BorderLayout());
-        getContentPane().setBackground(backgroundColor);
-
-        // Header
-        JPanel headerPanel = createHeaderPanel(nom, prenom);
-        add(headerPanel, BorderLayout.NORTH);
-
-        // Content
-        JPanel contentPanel = createContentPanel(clientId, nom, prenom, telephone, email, adresse);
-        add(contentPanel, BorderLayout.CENTER);
-
-        // Footer
-        JPanel footerPanel = createFooterPanel();
-        add(footerPanel, BorderLayout.SOUTH);
-    }
-
-    private JPanel createHeaderPanel(String nom, String prenom) {
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(primaryColor);
-        headerPanel.setBorder(new EmptyBorder(30, 30, 30, 30));
-
-        // Avatar (initiales)
-        JPanel avatarPanel = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2d = (Graphics2D) g.create();
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                g2d.setColor(Color.WHITE);
-                g2d.fillOval(0, 0, getWidth(), getHeight());
-                
-                g2d.setColor(primaryColor);
-                g2d.setFont(new Font("Segoe UI", Font.BOLD, 24));
-                
-                String initiales = "";
-                if (nom.length() > 0) initiales += nom.charAt(0);
-                if (prenom.length() > 0) initiales += prenom.charAt(0);
-                
-                FontMetrics fm = g2d.getFontMetrics();
-                int x = (getWidth() - fm.stringWidth(initiales)) / 2;
-                int y = (getHeight() + fm.getAscent()) / 2 - 2;
-                g2d.drawString(initiales, x, y);
-                
-                g2d.dispose();
-            }
-        };
-        avatarPanel.setPreferredSize(new Dimension(80, 80));
-        avatarPanel.setOpaque(false);
-
-        // Nom complet
-        JLabel nameLabel = new JLabel(prenom + " " + nom);
-        nameLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        nameLabel.setForeground(Color.WHITE);
-
-        JLabel roleLabel = new JLabel("Client");
-        roleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        roleLabel.setForeground(new Color(255, 255, 255, 180));
-
-        JPanel nameContainer = new JPanel();
-        nameContainer.setLayout(new BoxLayout(nameContainer, BoxLayout.Y_AXIS));
-        nameContainer.setOpaque(false);
-        nameContainer.add(nameLabel);
-        nameContainer.add(Box.createVerticalStrut(5));
-        nameContainer.add(roleLabel);
-
-        JPanel headerContent = new JPanel(new BorderLayout());
-        headerContent.setOpaque(false);
-        headerContent.add(avatarPanel, BorderLayout.WEST);
-        headerContent.add(Box.createHorizontalStrut(20), BorderLayout.CENTER);
-        
-        JPanel namePanel = new JPanel(new BorderLayout());
-        namePanel.setOpaque(false);
-        namePanel.add(nameContainer, BorderLayout.CENTER);
-        headerContent.add(namePanel, BorderLayout.EAST);
-
-        headerPanel.add(headerContent, BorderLayout.CENTER);
-        return headerPanel;
-    }
-
-    private JPanel createContentPanel(String clientId, String nom, String prenom, 
-                                     String telephone, String email, String adresse) {
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBackground(backgroundColor);
-        contentPanel.setBorder(new EmptyBorder(30, 30, 20, 30));
-
-        // Informations personnelles
-        contentPanel.add(createInfoSection("Informations Personnelles", new String[][]{
-            {"ID Client", clientId},
-            {"Nom", nom},
-            {"Prénom", prenom}
-        }));
-
-        contentPanel.add(Box.createVerticalStrut(20));
-
-        // Contact
-        contentPanel.add(createInfoSection("Contact", new String[][]{
-            {"Téléphone", telephone},
-            {"Email", email}
-        }));
-
-        contentPanel.add(Box.createVerticalStrut(20));
-
-        // Adresse
-        contentPanel.add(createInfoSection("Adresse", new String[][]{
-            {"Adresse complète", adresse}
-        }));
-
-        return contentPanel;
-    }
-
-    private JPanel createInfoSection(String title, String[][] infos) {
-        JPanel sectionPanel = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2d = (Graphics2D) g.create();
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                g2d.setColor(cardBackground);
-                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
-                
-                g2d.setColor(borderColor);
-                g2d.setStroke(new BasicStroke(1));
-                g2d.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 12, 12);
-                
-                g2d.dispose();
-            }
-        };
-        sectionPanel.setLayout(new BoxLayout(sectionPanel, BoxLayout.Y_AXIS));
-        sectionPanel.setOpaque(false);
-        sectionPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
-
-        // Titre de section
-        JLabel titleLabel = new JLabel(title);
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        titleLabel.setForeground(textPrimary);
-        titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        sectionPanel.add(titleLabel);
-        sectionPanel.add(Box.createVerticalStrut(15));
-
-        // Informations
-        for (String[] info : infos) {
-            JPanel infoRow = createInfoRow(info[0], info[1]);
-            sectionPanel.add(infoRow);
-            sectionPanel.add(Box.createVerticalStrut(12));
-        }
-
-        return sectionPanel;
-    }
-
-    private JPanel createInfoRow(String label, String value) {
-        JPanel row = new JPanel(new BorderLayout());
-        row.setOpaque(false);
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
-
-        JLabel labelComp = new JLabel(label + ":");
-        labelComp.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        labelComp.setForeground(textSecondary);
-        labelComp.setPreferredSize(new Dimension(120, 20));
-
-        JLabel valueComp = new JLabel(value != null ? value : "Non renseigné");
-        valueComp.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        valueComp.setForeground(textPrimary);
-
-        row.add(labelComp, BorderLayout.WEST);
-        row.add(valueComp, BorderLayout.CENTER);
-
-        return row;
-    }
-
-    private JPanel createFooterPanel() {
-        JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        footerPanel.setBackground(backgroundColor);
-        footerPanel.setBorder(new EmptyBorder(0, 30, 30, 30));
-
-        JButton closeBtn = createStyledButton("Fermer", new Color(107, 114, 128));
-        closeBtn.addActionListener(e -> dispose());
-
-        JButton editBtn = createStyledButton("Modifier", primaryColor);
-        editBtn.addActionListener(e -> {
-            // Logique pour modifier le client
-            dispose();
-        });
-
-        footerPanel.add(closeBtn);
-        footerPanel.add(Box.createHorizontalStrut(10));
-        footerPanel.add(editBtn);
-
-        return footerPanel;
-    }
-
-    private JButton createStyledButton(String text, Color color) {
-        JButton button = new JButton(text) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2d = (Graphics2D) g.create();
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                Color bgColor = getModel().isPressed() ? color.darker() : 
-                               getModel().isRollover() ? color.brighter() : color;
-                
-                g2d.setColor(bgColor);
-                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                g2d.dispose();
-
-                super.paintComponent(g);
-            }
-        };
-
-        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        button.setForeground(Color.WHITE);
-        button.setPreferredSize(new Dimension(100, 40));
-        button.setContentAreaFilled(false);
-        button.setBorderPainted(false);
-        button.setFocusPainted(false);
-        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-        return button;
     }
 }

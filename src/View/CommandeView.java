@@ -25,6 +25,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import dao.CommandeDAO;
 import dao.CommandeDAO.Client;
 import modele.Commande;
+import View.NouvelleCommandePanel;
 
 public class CommandeView extends JPanel {
 
@@ -145,12 +146,30 @@ public class CommandeView extends JPanel {
         titlePanel.add(subtitleLabel);
 
         JButton nouvelleCommandeBtn = createPrimaryButton("+ Nouvelle commande");
-        //nouvelleCommandeBtn.addActionListener(e -> NouvelleCommandeModal());
+        nouvelleCommandeBtn.addActionListener(e -> ouvrirNouvelleCommande());
 
         panel.add(titlePanel, BorderLayout.WEST);
         panel.add(nouvelleCommandeBtn, BorderLayout.EAST);
 
         return panel;
+    }
+
+    // MÉTHODE AJOUTÉE POUR OUVRIR LE PANEL NOUVELLE COMMANDE
+    private void ouvrirNouvelleCommande() {
+        try {
+            Frame parentFrame = (Frame) SwingUtilities.getWindowAncestor(this);
+            NouvelleCommandePanel nouvelleCommandePanel = new NouvelleCommandePanel(
+                parentFrame, 
+                dbConnection, 
+                this
+            );
+            nouvelleCommandePanel.setVisible(true);
+        } catch (Exception e) {
+            Logger.getLogger(CommandeView.class.getName())
+                    .log(Level.SEVERE, "Erreur lors de l'ouverture du panel nouvelle commande", e);
+            showStyledMessage(this, "❌ Erreur", 
+                "Erreur lors de l'ouverture du formulaire: " + e.getMessage(), false);
+        }
     }
 
     // MÉTHODE MODIFIÉE POUR LA RECHERCHE DYNAMIQUE
@@ -702,10 +721,6 @@ public class CommandeView extends JPanel {
         return createStyledButton(text, Color.WHITE, lightText, new Dimension(100, 40), 6, icon);
     }
 
-    //private void NouvelleCommandeModal() {
-        //throw new UnsupportedOperationException("Not supported yet.");
-    //}
-
     class StatusRenderer extends JPanel implements TableCellRenderer {
         private JLabel label;
         private int arc = 12;
@@ -737,7 +752,11 @@ public class CommandeView extends JPanel {
                 case "en attente":
                     bgColor = statusEnAttente;
                     break;
+                case "inconnu":
+                    bgColor = Color.GRAY;
+                    break;
             }
+
 
             g2d.setColor(bgColor);
             g2d.fillRoundRect(0, (getHeight() - label.getPreferredSize().height) / 2 - label.getInsets().top,
@@ -750,7 +769,9 @@ public class CommandeView extends JPanel {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
                 boolean isSelected, boolean hasFocus, int row, int column) {
-            String status = (String) value;
+
+            String status = (value != null) ? value.toString() : "inconnu"; // protection null
+
             switch (status) {
                 case "en cours":
                     label.setForeground(statusEnCoursText);
@@ -770,11 +791,13 @@ public class CommandeView extends JPanel {
                     break;
                 default:
                     label.setForeground(darkText);
-                    label.setText(status);
+                    label.setText(status); // ça peut être "inconnu"
             }
+
             setBackground(isSelected ? hoverColor : Color.WHITE);
             return this;
         }
+
     }
 
     class PrioriteRenderer extends JPanel implements TableCellRenderer {

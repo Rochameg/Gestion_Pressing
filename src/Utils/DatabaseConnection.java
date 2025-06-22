@@ -33,16 +33,7 @@ public class DatabaseConnection {
     }
 
     // Méthode pour fermer la connexion
-    public static void fermerConnexion() {
-        if (connexion != null) {
-            try {
-                connexion.close();
-                System.out.println("Connexion fermée.");
-            } catch (SQLException e) {
-                System.err.println("Erreur lors de la fermeture de la connexion : " + e.getMessage());
-            }
-        }
-    }
+   
 
     public static PreparedStatement prepareStatement(String sql) {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from
