@@ -106,20 +106,68 @@ public class ClientDAO {
             return false;
         }
     }
-}
 
     // Supprimer un client
-//     public boolean supprimerClient(int id) {
-//         String query = "DELETE FROM clients WHERE id = ?";
+    public boolean supprimerClient(int id) {
+        String query = "DELETE FROM clients WHERE id = ?";
 
-//         try (PreparedStatement stmt = connection.prepareStatement(query)) {
-//             stmt.setInt(1, id);
-//             int rowsDeleted = stmt.executeUpdate();
-//             return rowsDeleted > 0;
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, id);
+            int rowsDeleted = stmt.executeUpdate();
+            return rowsDeleted > 0;
 
-//         } catch (SQLException e) {
-//             LOGGER.log(Level.SEVERE, "Erreur lors de la suppression du client", e);
-//             return false;
-//         }
-//     }
-// }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Erreur lors de la suppression du client", e);
+            return false;
+        }
+    }
+
+    // Rechercher des clients par nom ou prénom
+    public List<Client> rechercherClients(String searchTerm) {
+        List<Client> clients = new ArrayList<>();
+        String query = "SELECT * FROM clients WHERE nom LIKE ? OR prenom LIKE ?";
+
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            String searchPattern = "%" + searchTerm + "%";
+            stmt.setString(1, searchPattern);
+            stmt.setString(2, searchPattern);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Client client = new Client(
+                        rs.getInt("id"),
+                        rs.getString("nom"),
+                        rs.getString("prenom"),
+                        rs.getString("telephone"),
+                        rs.getString("email"),
+                        rs.getString("adresse")
+                    );
+                    clients.add(client);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Erreur lors de la recherche de clients", e);
+        }
+
+        return clients;
+    }
+
+    // Vérifier si un email existe déjà
+    public boolean emailExiste(String email) {
+        String query = "SELECT COUNT(*) FROM clients WHERE email = ?";
+        
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setString(1, email);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Erreur lors de la vérification de l'email", e);
+        }
+        
+        return false;
+    }
+}
