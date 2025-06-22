@@ -52,7 +52,7 @@ public class DashboardView extends JFrame {
 
     private Connection dbConnection;
 
-    public DashboardView() {
+    public DashboardView() throws SQLException {
         try {
             this.dbConnection = DatabaseConnection.getConnection();
         } catch (SQLException ex) {
@@ -160,57 +160,72 @@ public class DashboardView extends JFrame {
     }
 
     private JPanel createLogoPanel() {
-        JPanel logoPanel = new JPanel(new BorderLayout());
-        logoPanel.setOpaque(false);
-        logoPanel.setBorder(new EmptyBorder(0, 0, 20, 0));
+    JPanel logoPanel = new JPanel();
+    logoPanel.setLayout(new BoxLayout(logoPanel, BoxLayout.Y_AXIS));
+    logoPanel.setOpaque(false);
+    logoPanel.setBorder(new EmptyBorder(0, 0, 20, 0));
+    logoPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JPanel logoContainer = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2d = (Graphics2D) g.create();
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2d.setColor(new Color(255, 255, 255, 20));
-                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
-                g2d.setColor(new Color(255, 255, 255, 40));
-                g2d.setStroke(new BasicStroke(1.5f));
-                g2d.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
-                g2d.dispose();
-            }
-        };
-        logoContainer.setLayout(new BorderLayout());
-        logoContainer.setPreferredSize(new Dimension(230, 80));
-        logoContainer.setBorder(new EmptyBorder(15, 20, 15, 20));
+    JPanel logoContainer = new JPanel() {
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2d = (Graphics2D) g.create();
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            
+            // Fond semi-transparent
+            g2d.setColor(new Color(255, 255, 255, 30));
+            g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 25, 25);
+            
+            // Contour plus visible
+            g2d.setColor(new Color(255, 255, 255, 80));
+            g2d.setStroke(new BasicStroke(2.5f));
+            g2d.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 25, 25);
+            
+            g2d.dispose();
+        }
+    };
+    logoContainer.setLayout(new BorderLayout());
+    logoContainer.setPreferredSize(new Dimension(320, 140)); // Largeur augmentée (320), hauteur inchangée (140)
+    logoContainer.setBorder(new EmptyBorder(30, 35, 30, 35)); // Marges horizontales augmentées
 
-        ImageIcon logoIcon = new ImageIcon(Objects.requireNonNull(getClass().getResource("/images/logo.png")));
-        Image scaledLogo = logoIcon.getImage().getScaledInstance(40, 40, Image.SCALE_SMOOTH);
-        JLabel iconLabel = new JLabel(new ImageIcon(scaledLogo));
+    // Panel pour le logo (inchangé)
+    JPanel logoImagePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+    logoImagePanel.setOpaque(false);
+    
+    ImageIcon logoIcon = new ImageIcon(Objects.requireNonNull(getClass().getResource("/images/logo.png")));
+    Image scaledLogo = logoIcon.getImage().getScaledInstance(60, 60, Image.SCALE_SMOOTH);
+    JLabel iconLabel = new JLabel(new ImageIcon(scaledLogo));
+    logoImagePanel.add(iconLabel);
 
-        iconLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        iconLabel.setPreferredSize(new Dimension(50, 50));
+    // Panel pour le texte (inchangé)
+    JPanel textPanel = new JPanel();
+    textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
+    textPanel.setOpaque(false);
+    textPanel.setBorder(new EmptyBorder(15, 0, 0, 0));
+    textPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JPanel textPanel = new JPanel();
-        textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
-        textPanel.setOpaque(false);
-        textPanel.setBorder(new EmptyBorder(0, 15, 0, 0));
+    JLabel titleLabel = new JLabel("Royal Pressing");
+    titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
+    titleLabel.setForeground(lightText);
+    titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel titleLabel = new JLabel("Royal Pressing");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
-        titleLabel.setForeground(lightText);
+    JLabel subtitleLabel = new JLabel("Votre partenaire de nettoyage");
+    subtitleLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+    subtitleLabel.setForeground(mutedText);
+    subtitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel subtitleLabel = new JLabel("Votre partenaire de nettoyage");
-        subtitleLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        subtitleLabel.setForeground(mutedText);
+    textPanel.add(titleLabel);
+    textPanel.add(Box.createVerticalStrut(5));
+    textPanel.add(subtitleLabel);
 
-        textPanel.add(titleLabel);
-        textPanel.add(subtitleLabel);
+    // Organisation des composants
+    logoContainer.add(logoImagePanel, BorderLayout.CENTER);
+    logoContainer.add(textPanel, BorderLayout.SOUTH);
+    
+    logoPanel.add(logoContainer);
 
-        logoContainer.add(iconLabel, BorderLayout.WEST);
-        logoContainer.add(textPanel, BorderLayout.CENTER);
-        logoPanel.add(logoContainer, BorderLayout.CENTER);
-
-        return logoPanel;
-    }
-
+    return logoPanel;
+}
     private void createModernNavigation(JPanel parent) {
         String[] iconPaths = {
                 "/images/dashboard_icon.png",
@@ -267,7 +282,11 @@ public class DashboardView extends JFrame {
                             Component[] components = mainContentPanel.getComponents();
                             for (Component comp : components) {
                                 if (comp instanceof CommandeView) {
-                                    ((CommandeView) comp).loadCommandeData();
+                                    try {
+                                        ((CommandeView) comp).loadCommandeData();
+                                    } catch (SQLException ex) {
+                                        Logger.getLogger(DashboardView.class.getName()).log(Level.SEVERE, null, ex);
+                                    }
                                     break;
                                 }
                             }
@@ -601,12 +620,6 @@ public class DashboardView extends JFrame {
         JPanel bottomPanel = new JPanel(new GridLayout(1, 3, 10, 30)); // Grille 1x2 pour les tableaux
         bottomPanel.setOpaque(false);
 
-        JPanel recentOrdersPanel = createModernCard("Commandes Récentes", createRecentOrdersTable());
-        bottomPanel.add(recentOrdersPanel);
-
-        JPanel lowStockPanel = createModernCard("Articles en Stock Bas", createLowStockTable());
-        bottomPanel.add(lowStockPanel);
-
         content.add(bottomPanel, BorderLayout.SOUTH);
 
         return content;
@@ -846,56 +859,8 @@ public class DashboardView extends JFrame {
         return chartPanel;
     }
 
-    private JScrollPane createRecentOrdersTable() {
-        String[] columnNames = { "ID Commande", "Client", "Statut", "Montant" };
-        // Remplacez par des données réelles
-        Object[][] data = {
-                { "C001", "Jean Dupont", "En cours", "15.000 FCFA" },
-                { "C002", "Marie Curie", "Terminée", "22.500 FCFA" },
-                { "C003", "Paul Smith", "En attente", "10.000 FCFA" },
-                { "C004", "Alice Wonderland", "Terminée", "30.000 FCFA" }
-        };
-
-        DefaultTableModel model = new DefaultTableModel(data, columnNames) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false; // Rendre les cellules non éditables
-            }
-        };
-        JTable table = new JTable(model);
-        styleTable(table); // Utilisation de la méthode de style existante
-
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240)));
-        scrollPane.setPreferredSize(new Dimension(400, 200)); // Taille suggérée
-        return scrollPane;
-    }
-
-    private JScrollPane createLowStockTable() {
-        String[] columnNames = { "ID Produit", "Nom Produit", "Quantité" };
-        // Remplacez par des données réelles (ex: items dont la quantité est < un seuil)
-        Object[][] data = {
-                { "P005", "Détachant", "5" },
-                { "P012", "Sacs Plastique", "20" },
-                { "P002", "Lessive Bio", "3" }
-        };
-
-        DefaultTableModel model = new DefaultTableModel(data, columnNames) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        JTable table = new JTable(model);
-        styleTable(table);
-
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240)));
-        scrollPane.setPreferredSize(new Dimension(400, 200)); // Taille suggérée
-        return scrollPane;
-    }
+    
+    
 
     // Réutilisation de la méthode de style de table existante
     private void styleTable(JTable table) {
@@ -945,7 +910,11 @@ public class DashboardView extends JFrame {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            new DashboardView();
+            try {
+                new DashboardView();
+            } catch (SQLException ex) {
+                Logger.getLogger(DashboardView.class.getName()).log(Level.SEVERE, null, ex);
+            }
         });
     }
 }

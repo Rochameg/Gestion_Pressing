@@ -14,7 +14,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.sql.Connection;
 import Utils.DatabaseConnection;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
+import java.text.ParseException;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class LivraisonModal extends JFrame {
     // Palette de couleurs moderne (inspirée du design de référence)
@@ -43,8 +48,10 @@ public class LivraisonModal extends JFrame {
     private int articleCounter = 0;
     private LivraisonView livraisonView;
     private Connection connection;
+    private final Map<String, Integer> clientsMap = new HashMap<>();
+    private final Map<String, Integer> livreursMap = new HashMap<>();
 
-    public LivraisonModal(Connection connection, LivraisonView livraisonView) {
+    public LivraisonModal(Connection connection, LivraisonView livraisonView, Livraison livraison) {
         this.connection = connection;
         this.livraisonView = livraisonView;
         setTitle("Planification de Livraison");
@@ -90,33 +97,43 @@ delivererComboBox = createStyledComboBox(livreurs.toArray(new String[0]));
     }
 private ArrayList<String> fetchClientsFromDB() {
     ArrayList<String> clients = new ArrayList<>();
+    clientsMap.clear(); // Vide la map avant de la remplir
     try {
         var stmt = connection.createStatement();
-        var rs = stmt.executeQuery("SELECT nom FROM clients");
+        var rs = stmt.executeQuery("SELECT id, nom FROM clients");
         while (rs.next()) {
-            clients.add(rs.getString("nom"));
+            int id = rs.getInt("id");
+            String nom = rs.getString("nom");
+            clientsMap.put(nom, id);
+            clients.add(nom);
         }
         rs.close();
         stmt.close();
     } catch (Exception e) {
         e.printStackTrace();
     }
+    clients.add(0, "Sélectionner un client"); // Gardez l'option par défaut
     return clients;
 }
 
 private ArrayList<String> fetchLivreursFromDB() {
     ArrayList<String> livreurs = new ArrayList<>();
+    livreursMap.clear(); // Vide la map avant de la remplir
     try {
         var stmt = connection.createStatement();
-        var rs = stmt.executeQuery("SELECT nom FROM livreurs");
+        var rs = stmt.executeQuery("SELECT id, nom FROM livreurs");
         while (rs.next()) {
-            livreurs.add(rs.getString("nom"));
+            int id = rs.getInt("id");
+            String nom = rs.getString("nom");
+            livreursMap.put(nom, id);
+            livreurs.add(nom);
         }
         rs.close();
         stmt.close();
     } catch (Exception e) {
         e.printStackTrace();
     }
+    livreurs.add(0, "Assigner un livreur"); // Gardez l'option par défaut
     return livreurs;
 }
 
@@ -544,46 +561,89 @@ private ArrayList<String> fetchLivreursFromDB() {
     }
 
     private void planDelivery() {
-        try {
-            Livraison livraison = new Livraison();
-            livraison.setClientId(clientComboBox.getSelectedIndex());
-            livraison.setLivreurId(delivererComboBox.getSelectedIndex());
-            livraison.setAdresseLivraison(addressField.getText());
+    try {
+        // Vérification des sélections obligatoires
+        if (clientComboBox.getSelectedIndex() <= 0 || delivererComboBox.getSelectedIndex() <= 0) {
+            JOptionPane.showMessageDialog(this, 
+                "Veuillez sélectionner un client et un livreur",
+                "Champs manquants", 
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
 
+        // Création et initialisation de la livraison
+        Livraison livraison = new Livraison();
+        
+        // Récupération des IDs depuis les Maps
+        String selectedClient = (String) clientComboBox.getSelectedItem();
+        String selectedLivreur = (String) delivererComboBox.getSelectedItem();
+        
+        livraison.setClientId(clientsMap.get(selectedClient));
+        livraison.setLivreurId(livreursMap.get(selectedLivreur));
+        livraison.setAdresseLivraison(addressField.getText().trim());
+
+        // Conversion des dates avec vérification
+        try {
             SimpleDateFormat sdfDate = new SimpleDateFormat("dd MMMM yyyy", Locale.FRENCH);
             livraison.setDateLivraison(sdfDate.parse(dateField.getText()));
-
+            
             SimpleDateFormat sdfTime = new SimpleDateFormat("HH:mm");
             livraison.setHeureLivraison(new java.sql.Time(sdfTime.parse(timeField.getText()).getTime()));
+        } catch (ParseException e) {
+            JOptionPane.showMessageDialog(this,
+                "Format de date ou heure invalide",
+                "Erreur de format",
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
 
-            livraison.setPriorite((String) priorityComboBox.getSelectedItem());
+        // Gestion des articles
+        List<String> articlesList = articleRows.stream()
+            .map(row -> row.getArticleName().trim())
+            .filter(article -> !article.isEmpty() && !article.equals("Nom de l'article"))
+            .collect(Collectors.toList());
+            
+        if (articlesList.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                "Veuillez ajouter au moins un article",
+                "Articles manquants",
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        livraison.setArticles(String.join(", ", articlesList));
+        livraison.setPriorite((String) priorityComboBox.getSelectedItem());
+        livraison.setStatut("En attente");
 
-            StringBuilder articles = new StringBuilder();
-            for (ArticleRow row : articleRows) {
-                String article = row.getArticleName().trim();
-                if (!article.isEmpty()) {
-                    articles.append(article).append("; ");
-                }
-            }
-            livraison.setArticles(articles.toString());
-            livraison.setStatut("En attente");
-
-            LivraisonDAO dao = new LivraisonDAO(connection);
-            if (dao.ajouterLivraison(livraison)) {
-                JOptionPane.showMessageDialog(this, "Livraison ajoutée avec succès !");
+        // Insertion en base de données
+        LivraisonDAO dao = new LivraisonDAO(connection);
+        if (dao.ajouterLivraison(livraison)) {
+            JOptionPane.showMessageDialog(this,
+                "Livraison planifiée avec succès!",
+                "Succès",
+                JOptionPane.INFORMATION_MESSAGE);
+                
+            // Rafraîchissement thread-safe
+            SwingUtilities.invokeLater(() -> {
                 if (livraisonView != null) {
                     livraisonView.loadLivraisonData();
                 }
-                dispose();
-            } else {
-                JOptionPane.showMessageDialog(this, "Erreur lors de l'ajout de la livraison.", "Erreur", JOptionPane.ERROR_MESSAGE);
-            }
-        } catch (java.text.ParseException e) {
-            JOptionPane.showMessageDialog(this, "Format de date ou d'heure invalide. Veuillez vérifier la saisie.", "Erreur", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
+                this.dispose();
+            });
+        } else {
+            JOptionPane.showMessageDialog(this,
+                "Échec de l'ajout de la livraison",
+                "Erreur",
+                JOptionPane.ERROR_MESSAGE);
         }
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(this,
+            "Erreur: " + e.getMessage(),
+            "Erreur critique",
+            JOptionPane.ERROR_MESSAGE);
+        e.printStackTrace();
     }
-
+}
     private static class ArticleRow {
         private JPanel panel;
         private JTextField articleField;
