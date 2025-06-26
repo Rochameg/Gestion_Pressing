@@ -1,5 +1,6 @@
 package dao;
 
+import Utils.DatabaseConnection;
 import modele.Client;
 import java.sql.*;
 import java.util.ArrayList;
@@ -8,11 +9,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ClientDAO {
-    private Connection connection;
     private static final Logger LOGGER = Logger.getLogger(ClientDAO.class.getName());
 
-    public ClientDAO(Connection connection) {
-        this.connection = connection;
+    // Supprimer le constructeur avec Connection et la variable d'instance
+    // Plus besoin de stocker la connexion
+
+    // Méthode pour obtenir une nouvelle connexion à chaque fois
+    private Connection getConnection() throws SQLException {
+        return DatabaseConnection.getConnection(); // Remplacez par votre méthode de connexion
     }
 
     // Obtenir tous les clients
@@ -20,7 +24,8 @@ public class ClientDAO {
         List<Client> clients = new ArrayList<>();
         String query = "SELECT * FROM clients";
 
-        try (Statement stmt = connection.createStatement();
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
 
             while (rs.next()) {
@@ -28,8 +33,9 @@ public class ClientDAO {
                     rs.getInt("id"),
                     rs.getString("nom"),
                     rs.getString("prenom"),
-                    rs.getString("telephone"),
+                    
                     rs.getString("email"),
+                    rs.getString("telephone"),
                     rs.getString("adresse")
                 );
                 clients.add(client);
@@ -43,13 +49,15 @@ public class ClientDAO {
 
     // Ajouter un client
     public boolean ajouterClient(Client client) {
-        String query = "INSERT INTO clients(nom, prenom, telephone, email, adresse) VALUES (?, ?, ?, ?, ?)";
+        String query = "INSERT INTO clients(nom, prenom, email, telephone, adresse) VALUES (?, ?, ?, ?, ?)";
 
-        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            
             stmt.setString(1, client.getNom());
             stmt.setString(2, client.getPrenom());
-            stmt.setString(3, client.getTelephone());
             stmt.setString(4, client.getEmail());
+            stmt.setString(3, client.getTelephone());
             stmt.setString(5, client.getAdresse());
 
             int rowsInserted = stmt.executeUpdate();
@@ -64,7 +72,10 @@ public class ClientDAO {
     // Obtenir un client par ID
     public Client obtenirClientParId(int id) {
         String query = "SELECT * FROM clients WHERE id = ?";
-        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+        
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            
             stmt.setInt(1, id);
 
             try (ResultSet rs = stmt.executeQuery()) {
@@ -73,8 +84,8 @@ public class ClientDAO {
                         rs.getInt("id"),
                         rs.getString("nom"),
                         rs.getString("prenom"),
-                        rs.getString("telephone"),
                         rs.getString("email"),
+                        rs.getString("telephone"),
                         rs.getString("adresse")
                     );
                 }
@@ -88,13 +99,15 @@ public class ClientDAO {
 
     // Modifier un client
     public boolean modifierClient(Client client) {
-        String query = "UPDATE clients SET nom = ?, prenom = ?, telephone = ?, email = ?, adresse = ? WHERE id = ?";
+        String query = "UPDATE clients SET nom = ?, prenom = ?, email = ?, telephone = ?, adresse = ? WHERE id = ?";
 
-        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            
             stmt.setString(1, client.getNom());
             stmt.setString(2, client.getPrenom());
-            stmt.setString(3, client.getTelephone());
             stmt.setString(4, client.getEmail());
+            stmt.setString(3, client.getTelephone());
             stmt.setString(5, client.getAdresse());
             stmt.setInt(6, client.getId());
 
@@ -111,7 +124,9 @@ public class ClientDAO {
     public boolean supprimerClient(int id) {
         String query = "DELETE FROM clients WHERE id = ?";
 
-        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            
             stmt.setInt(1, id);
             int rowsDeleted = stmt.executeUpdate();
             return rowsDeleted > 0;
@@ -127,7 +142,9 @@ public class ClientDAO {
         List<Client> clients = new ArrayList<>();
         String query = "SELECT * FROM clients WHERE nom LIKE ? OR prenom LIKE ?";
 
-        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            
             String searchPattern = "%" + searchTerm + "%";
             stmt.setString(1, searchPattern);
             stmt.setString(2, searchPattern);
@@ -138,8 +155,9 @@ public class ClientDAO {
                         rs.getInt("id"),
                         rs.getString("nom"),
                         rs.getString("prenom"),
-                        rs.getString("telephone"),
+                        
                         rs.getString("email"),
+                        rs.getString("telephone"),
                         rs.getString("adresse")
                     );
                     clients.add(client);
@@ -156,7 +174,9 @@ public class ClientDAO {
     public boolean emailExiste(String email) {
         String query = "SELECT COUNT(*) FROM clients WHERE email = ?";
         
-        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            
             stmt.setString(1, email);
             
             try (ResultSet rs = stmt.executeQuery()) {

@@ -42,7 +42,7 @@ public class ClientView extends JPanel {
 
     public ClientView(Connection connection) {
         if (connection != null) {
-            this.clientDAO = new ClientDAO(connection);
+            this.clientDAO = new ClientDAO();
         } else {
             Logger.getLogger(ClientView.class.getName()).log(Level.WARNING,
                     "ClientPanel initialized with null connection.");

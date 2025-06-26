@@ -10,7 +10,7 @@ import modele.Commande;
 import modele.Client;
 
 public class CommandeDAO {
-    private final Connection connection;
+    
     private static final Logger LOGGER = Logger.getLogger(CommandeDAO.class.getName());
     
     // Requêtes préparées pour de meilleures performances
@@ -43,36 +43,19 @@ public class CommandeDAO {
         "OR LOWER(CONCAT(cl.prenom, ' ', cl.nom)) LIKE LOWER(?) " +
         "ORDER BY c.id ASC";
     
-    public CommandeDAO(Connection connection) {
-        this.connection = connection;
-        validateConnection();
+    private Connection getConnection() throws SQLException {
+        return DatabaseConnection.getConnection(); // Remplacez par votre méthode de connexion
     }
-    
     /**
      * Valide la connexion à la base de données
      */
-    private void validateConnection() {
-        if (connection == null) {
-            throw new IllegalArgumentException("La connexion à la base de données ne peut pas être null");
-        }
-        try {
-            if (connection.isClosed()) {
-                throw new IllegalStateException("La connexion à la base de données est fermée");
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Erreur lors de la validation de la connexion", e);
-        }
-    }
     
-    /**
-     * Récupère toutes les commandes avec les informations complètes du client
-     * @return Liste de toutes les commandes avec les données client complètes
-     * @throws SQLException
-     */
-    public List<Commande> getAllCommandes() throws SQLException {
+    
+   public List<Commande> getAllCommandes() throws SQLException {
         List<Commande> commandes = new ArrayList<>();
         
-        try (Statement stmt = connection.createStatement();
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(SELECT_ALL_COMMANDES)) {
             
             while (rs.next()) {
@@ -80,7 +63,7 @@ public class CommandeDAO {
                 commandes.add(commande);
             }
             
-            LOGGER.info("Récupération de " + commandes.size() + " commandes");
+            LOGGER.log(Level.INFO, "Récupération de {0} commandes", commandes.size());
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Erreur lors de la récupération de toutes les commandes", e);
             throw e;
@@ -100,7 +83,7 @@ public class CommandeDAO {
             throw new IllegalArgumentException("L'ID de la commande doit être positif");
         }
         
-        try (PreparedStatement pstmt = connection.prepareStatement(SELECT_COMMANDE_BY_ID)) {
+        try (PreparedStatement pstmt = getConnection().prepareStatement(SELECT_COMMANDE_BY_ID)) {
             pstmt.setInt(1, id);
             
             try (ResultSet rs = pstmt.executeQuery()) {
@@ -166,37 +149,34 @@ public class CommandeDAO {
      * @throws SQLException
      */
     public boolean updateCommande(Commande commande) throws SQLException {
-        if (commande == null) {
-            throw new IllegalArgumentException("La commande ne peut pas être null");
-        }
-        if (commande.getId() <= 0) {
-            throw new IllegalArgumentException("L'ID de la commande doit être positif");
-        }
-        
-        validateCommande(commande);
-        
-        
         String query = "UPDATE commandes SET client_id = ?, date_reception = ?, date_livraison = ?, " +
                       "statut = ?, article = ?, total = ?, priorite = ? WHERE id = ?";
         
-        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
-            setCommandeParameters(pstmt, commande, true);
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
             
-            int affectedRows = pstmt.executeUpdate();
+            stmt.setInt(1, commande.getClient_id());
+            stmt.setDate(2, new java.sql.Date(commande.getDate_reception().getTime()));
+            stmt.setDate(3, new java.sql.Date(commande.getDate_livraison().getTime()));
+            stmt.setString(4, commande.getStatut());
+            stmt.setString(5, commande.getArticle());
+            stmt.setDouble(6, commande.getTotal());
+            stmt.setString(7, commande.getPriorite());
+            stmt.setInt(8, commande.getId());
             
-            if (affectedRows > 0) {
-                LOGGER.info("Commande mise à jour avec succès - ID: " + commande.getId());
+            int rowsAffected = stmt.executeUpdate();
+            
+            if (rowsAffected > 0) {
+                LOGGER.log(Level.INFO, "Commande mise à jour avec succès - ID: {0}", commande.getId());
                 return true;
-            } else {
-                LOGGER.warning("Aucune commande trouvée avec l'ID: " + commande.getId());
-                return false;
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Erreur lors de la mise à jour de la commande avec l'ID: " + commande.getId(), e);
+            LOGGER.log(Level.SEVERE, "Erreur lors de la mise à jour de la commande", e);
             throw e;
         }
+        
+        return false;
     }
-    
     /**
      * Supprime une commande de la base de données
      * @param id L'ID de la commande à supprimer
@@ -204,30 +184,26 @@ public class CommandeDAO {
      * @throws SQLException
      */
     public boolean deleteCommande(int id) throws SQLException {
-        if (id <= 0) {
-            throw new IllegalArgumentException("L'ID de la commande doit être positif");
-        }
-        
         String query = "DELETE FROM commandes WHERE id = ?";
         
-        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
-            pstmt.setInt(1, id);
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
             
-            int affectedRows = pstmt.executeUpdate();
+            stmt.setInt(1, id);
+            int rowsAffected = stmt.executeUpdate();
             
-            if (affectedRows > 0) {
-                LOGGER.info("Commande supprimée avec succès - ID: " + id);
+            if (rowsAffected > 0) {
+                LOGGER.log(Level.INFO, "Commande supprimée avec succès - ID: {0}", id);
                 return true;
-            } else {
-                LOGGER.warning("Aucune commande trouvée avec l'ID: " + id);
-                return false;
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Erreur lors de la suppression de la commande avec l'ID: " + id, e);
+            LOGGER.log(Level.SEVERE, "Erreur lors de la suppression de la commande", e);
             throw e;
         }
+        
+        return false;
     }
-    
+
     /**
      * Recherche des commandes par critères (inclut la recherche par toutes les informations client)
      * @param searchTerm Terme de recherche
@@ -241,7 +217,7 @@ public class CommandeDAO {
         
         List<Commande> commandes = new ArrayList<>();
         
-        try (PreparedStatement pstmt = connection.prepareStatement(SEARCH_COMMANDES)) {
+        try (PreparedStatement pstmt = DatabaseConnection.prepareStatement(SEARCH_COMMANDES)) {
             String searchPattern = "%" + searchTerm.trim() + "%";
             
             // Définir tous les paramètres de recherche
@@ -279,7 +255,7 @@ public class CommandeDAO {
         List<Commande> commandes = new ArrayList<>();
         String query = SELECT_ALL_COMMANDES.replace("ORDER BY c.id ASC", "WHERE c.statut = ? ORDER BY c.id ASC");
         
-        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+        try (PreparedStatement pstmt = DatabaseConnection.prepareStatement(query)) {
             pstmt.setString(1, statut.trim());
             
             try (ResultSet rs = pstmt.executeQuery()) {
@@ -312,7 +288,7 @@ public class CommandeDAO {
         List<Commande> commandes = new ArrayList<>();
         String query = SELECT_ALL_COMMANDES.replace("ORDER BY c.id ASC", "WHERE c.priorite = ? ORDER BY c.id ASC");
         
-        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+        try (PreparedStatement pstmt = DatabaseConnection.prepareStatement(query)) {
             pstmt.setString(1, priorite.trim());
             
             try (ResultSet rs = pstmt.executeQuery()) {
@@ -345,7 +321,7 @@ public class CommandeDAO {
         List<Commande> commandes = new ArrayList<>();
         String query = SELECT_ALL_COMMANDES.replace("ORDER BY c.id ASC", "WHERE c.client_id = ? ORDER BY c.id ASC");
         
-        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+        try (PreparedStatement pstmt = DatabaseConnection.prepareStatement(query)) {
             pstmt.setInt(1, clientId);
             
             try (ResultSet rs = pstmt.executeQuery()) {
@@ -372,7 +348,7 @@ public class CommandeDAO {
     public int getCommandeCount() throws SQLException {
         String query = "SELECT COUNT(*) as total FROM commandes";
         
-        try (Statement stmt = connection.createStatement();
+        try (Statement stmt = DatabaseConnection.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
             
             if (rs.next()) {
@@ -396,7 +372,7 @@ public class CommandeDAO {
         java.util.Map<String, Integer> stats = new java.util.HashMap<>();
         String query = "SELECT statut, COUNT(*) as count FROM commandes GROUP BY statut";
         
-        try (Statement stmt = connection.createStatement();
+        try (Statement stmt = DatabaseConnection.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
             
             while (rs.next()) {
@@ -418,22 +394,24 @@ public class CommandeDAO {
      * @throws SQLException
      */
     public double getTotalVentes() throws SQLException {
-        String query = "SELECT COALESCE(SUM(total), 0) as total_ventes FROM commandes";
-        
-        try (Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(query)) {
-            
-            if (rs.next()) {
-                double total = rs.getDouble("total_ventes");
-                LOGGER.info("Total des ventes: " + total + "€");
-                return total;
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Erreur lors du calcul du total des ventes", e);
-            throw e;
+    String sql = "SELECT COALESCE(SUM(total), 0) as total_ventes FROM commandes";
+
+    try (Connection conn = DatabaseConnection.getConnection();
+         PreparedStatement stmt = conn.prepareStatement(sql);
+         ResultSet rs = stmt.executeQuery()) {
+
+        if (rs.next()) {
+            double total = rs.getDouble("total_ventes");
+            LOGGER.info("Total des ventes: " + total + "Fcfa");
+            return total;
         }
-        return 0.0;
+    } catch (SQLException e) {
+        LOGGER.log(Level.SEVERE, "Erreur lors du calcul du total des ventes", e);
+        throw e;
     }
+
+    return 0.0;
+}
     
     /**
      * Récupère tous les clients pour les listes déroulantes
@@ -442,11 +420,11 @@ public class CommandeDAO {
      */
     public List<Client> getAllClients() throws SQLException {
         List<Client> clients = new ArrayList<>();
-        String query = "SELECT id, nom, prenom FROM clients ORDER BY nom ASC, prenom ASC";
+        //String query = "SELECT id, nom, prenom FROM clients ORDER BY nom ASC, prenom ASC";
         
-        try (Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(query)) {
-            
+        try (Connection conn = DatabaseConnection.getConnection();
+         PreparedStatement stmt = conn.prepareStatement("SELECT id, nom, prenom FROM clients ORDER BY nom ASC, prenom ASC")) {
+            ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 Client client = new Client(
                     rs.getInt("id"),
@@ -475,12 +453,13 @@ public class CommandeDAO {
             return false;
         }
         
-        String query = "SELECT 1 FROM commandes WHERE id = ? LIMIT 1";
+        //String query = "SELECT 1 FROM commandes WHERE id = ? LIMIT 1";
         
-        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
-            pstmt.setInt(1, id);
+        try (Connection conn = DatabaseConnection.getConnection();
+            PreparedStatement stmt = conn.prepareStatement("SELECT 1 FROM commandes WHERE id = ? LIMIT 1")) {
+            stmt.setInt(1, id);
             
-            try (ResultSet rs = pstmt.executeQuery()) {
+            try (ResultSet rs = stmt.executeQuery()) {
                 return rs.next();
             }
         } catch (SQLException e) {
@@ -569,39 +548,45 @@ public class CommandeDAO {
     }
 
     public int createClient(Client client) throws SQLException {
-        String sql = "INSERT INTO clients (nom, prenom, email, telephone, adresse) VALUES (?, ?, ?, ?, ?)";
+    String sql = "INSERT INTO clients (nom, prenom, email, telephone, adresse) VALUES (?, ?, ?, ?, ?)";
 
-        try (Connection conn = DatabaseConnection.getConnection();  // nouvelle connexion
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+    try (Connection conn = DatabaseConnection.getConnection();
+         PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        stmt.setString(1, client.getNom());
+        stmt.setString(2, client.getPrenom());
+        stmt.setString(3, client.getEmail());
+        stmt.setString(4, client.getTelephone());
+        stmt.setString(5, client.getAdresse());
 
-            stmt.setString(1, client.getNom());
-            stmt.setString(2, client.getPrenom());
-            stmt.setString(3, client.getEmail());
-            stmt.setString(4, client.getTelephone());
-            stmt.setString(5, client.getAdresse());
+        int rows = stmt.executeUpdate();
 
-            int affectedRows = stmt.executeUpdate();
+        if (rows == 0) {
+            throw new SQLException("Échec de la création du client, aucune ligne insérée.");
+        }
 
-            if (affectedRows == 0) {
-                throw new SQLException("Échec de la création du client, aucune ligne affectée.");
-            }
-
-            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    return generatedKeys.getInt(1); // retourne l'ID généré
-                } else {
-                    throw new SQLException("Échec de la création du client, aucun ID généré.");
-                }
+        try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+            if (generatedKeys.next()) {
+                int clientId = generatedKeys.getInt(1);
+                LOGGER.info("Client créé avec ID : " + clientId);
+                return clientId;
+            } else {
+                throw new SQLException("Échec de la création du client, aucun ID généré.");
             }
         }
+
+    } catch (SQLException e) {
+        LOGGER.log(Level.SEVERE, "Erreur lors de la création de commande", e);
+        throw e;
     }
+}
+
 
 
 
     public boolean emailExiste(String email) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM clients WHERE email = ?";
-        try (Connection conn = connection;
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        //String sql = "SELECT COUNT(*) FROM clients WHERE email = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+              PreparedStatement stmt = conn.prepareStatement("SELECT * FROM clients WHERE = ?")) {
             stmt.setString(1, email);
             try (ResultSet rs = stmt.executeQuery()) {
                 return rs.next() && rs.getInt(1) > 0;
@@ -609,18 +594,22 @@ public class CommandeDAO {
         }
     }
 
-    public Client getClientByEmail(String email) throws SQLException {
+    
+   public Client getClientByEmail(String email) throws SQLException {
     String sql = "SELECT * FROM clients WHERE email = ?";
-    try (Connection conn = connection;
+
+    try (Connection conn = DatabaseConnection.getConnection();
          PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-        stmt.setString(1, email);
+        stmt.setString(1, email);  // sécurise la requête
+
         try (ResultSet rs = stmt.executeQuery()) {
             if (rs.next()) {
                 return new Client(
                    rs.getInt("id"),
                    rs.getString("nom"),
                    rs.getString("prenom"),
+                   
                    rs.getString("email"),
                    rs.getString("telephone"),
                    rs.getString("adresse")
@@ -628,9 +617,14 @@ public class CommandeDAO {
 
             }
         }
+    } catch (SQLException e) {
+        LOGGER.log(Level.SEVERE, "Erreur lors de la recherche du client par email", e);
+        throw e;
     }
+
     return null;
 }
+
 
 
 

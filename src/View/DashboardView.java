@@ -808,45 +808,6 @@ public class DashboardView extends JFrame {
         return chartPanel;
     }
 
-    private ChartPanel createMonthlyOrdersBarChartPanel() {
-        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        // Remplacez ces données par des données réelles de votre BDD
-        dataset.addValue(50, "Commandes", "Jan");
-        dataset.addValue(70, "Commandes", "Fev");
-        dataset.addValue(60, "Commandes", "Mar");
-        dataset.addValue(90, "Commandes", "Avr");
-        dataset.addValue(80, "Commandes", "Mai");
-        dataset.addValue(110, "Commandes", "Juin");
-
-        JFreeChart barChart = ChartFactory.createBarChart(
-                "", // Titre du graphique (vide car déjà dans la carte)
-                "Mois", // Catégorie axe X
-                "Nombre de Commandes", // Valeur axe Y
-                dataset,
-                PlotOrientation.VERTICAL,
-                false, // Légende
-                true, // Tooltips
-                false // URLs
-        );
-
-        // Personnalisation du graphique
-        barChart.setBackgroundPaint(null);
-        barChart.getPlot().setBackgroundPaint(null);
-        barChart.getPlot().setOutlineVisible(false);
-        barChart.getCategoryPlot().getRenderer().setSeriesPaint(0, primaryColor); // Couleur des barres
-        barChart.getCategoryPlot().getRangeAxis()
-                .setStandardTickUnits(org.jfree.chart.axis.NumberAxis.createIntegerTickUnits());
-
-        ChartPanel chartPanel = new ChartPanel(barChart);
-        chartPanel.setOpaque(false);
-        chartPanel.setPreferredSize(new Dimension(300, 250));
-        chartPanel.setBorder(BorderFactory.createEmptyBorder());
-        return chartPanel;
-    }
-
-    
-    
-
     // Réutilisation de la méthode de style de table existante
     private void styleTable(JTable table) {
         table.setFont(new Font("Arial", Font.PLAIN, 12));

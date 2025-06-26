@@ -59,7 +59,7 @@ public class NouvelleCommandePanel extends JDialog {
         super(parent, "Nouvelle Commande", true);
         this.dbConnection = connection;
         this.parentView = commandeView;
-        this.commandeDAO = new CommandeDAO(connection);
+        this.commandeDAO = new CommandeDAO();
         
         initComponents();
         setupValidation();
@@ -245,8 +245,8 @@ public class NouvelleCommandePanel extends JDialog {
         JPanel nameGrid = new JPanel(new GridLayout(1, 2, 20, 0)); // Espacement réduit
         nameGrid.setBackground(Color.WHITE);
         
-        prenomField = createEnhancedTextField("", "Ex: Jean");
-        nomField = createEnhancedTextField("", "Ex: Dupont");
+        prenomField = createEnhancedTextField("", "Ex: Mulho");
+        nomField = createEnhancedTextField("", "Ex: Ibrahim");
         
         nameGrid.add(createFieldRow("Prénom *", "Prénom du client", prenomField));
         nameGrid.add(createFieldRow("Nom *", "Nom de famille", nomField));
@@ -259,7 +259,7 @@ public class NouvelleCommandePanel extends JDialog {
         contactGrid.setBackground(Color.WHITE);
         
         emailField = createEnhancedTextField("", "exemple@email.com");
-        telephoneField = createEnhancedTextField("", "06 12 34 56 78");
+        telephoneField = createEnhancedTextField("", "+221787550290");
         
         contactGrid.add(createFieldRow("Email *", "Adresse email du client", emailField));
         contactGrid.add(createFieldRow("Téléphone *", "Numéro de téléphone", telephoneField));

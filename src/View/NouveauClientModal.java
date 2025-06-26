@@ -50,7 +50,7 @@ public class NouveauClientModal extends JDialog {
         // Initialisation de ClientDAO (assurez-vous que
         // DatabaseConnection.getConnection() est fonctionnel)
         try {
-            this.clientDAO = new ClientDAO(DatabaseConnection.getConnection());
+            this.clientDAO = new ClientDAO();
         } catch (Exception e) {
             Logger.getLogger(NouveauClientModal.class.getName()).log(Level.SEVERE,
                     "Impossible d'établir la connexion à la base de données pour ClientDAO.", e);
@@ -701,7 +701,7 @@ public class NouveauClientModal extends JDialog {
         Client nouveauClient = new Client(0, prenom, nom, telephone, email, adresse);
 
         try {
-            ClientDAO clientDAO = new ClientDAO(DatabaseConnection.getConnection());
+            ClientDAO clientDAO = new ClientDAO();
             boolean success = clientDAO.ajouterClient(nouveauClient);
 
             if (success) {

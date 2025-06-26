@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 public class DatabaseConnection {
     private static final String URL = "jdbc:mysql://localhost:3306/pressing_base"; // modifie ici
@@ -41,6 +42,10 @@ public class DatabaseConnection {
     }
 
     public static PreparedStatement prepareStatement(String sql, int RETURN_GENERATED_KEYS) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+    public static Statement createStatement() {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 }

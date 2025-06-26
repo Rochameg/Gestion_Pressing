@@ -64,7 +64,7 @@ public class CommandeView extends JPanel {
 
     public CommandeView(Connection connection) throws SQLException {
         this.dbConnection = connection;
-        this.commandeDAO = new CommandeDAO(connection);
+        this.commandeDAO = new CommandeDAO();
 
         if (connection == null) {
             Logger.getLogger(CommandeView.class.getName())
@@ -943,19 +943,27 @@ public class CommandeView extends JPanel {
                 viewCommande(currentRow);
                 fireEditingStopped();
             });
+
             editBtn.addActionListener(e -> {
                 editCommande(currentRow);
                 fireEditingStopped();
             });
             deleteBtn.addActionListener(e -> {
                 deleteCommande(currentRow);
-                fireEditingStopped();
+                // ✅ Appelé *après* que Swing ait terminé le traitement de l’événement courant
+                SwingUtilities.invokeLater(() -> {
+                    fireEditingStopped();
+                });
             });
+
+
+            
 
             panel.add(viewBtn);
             panel.add(editBtn);
             panel.add(deleteBtn);
         }
+
 
         private JButton createSmallActionButton(ImageIcon icon) {
             JButton btn = new JButton(icon) {
@@ -1142,7 +1150,7 @@ public class CommandeView extends JPanel {
                 infoGrid.setBackground(Color.WHITE);
                 
                 infoGrid.add(createCompactInfoCard("📦 Article", commande.getArticle(), new Color(59, 130, 246)));
-                infoGrid.add(createCompactInfoCard("💰 Montant", String.format("%.2f €", commande.getTotal()), new Color(34, 197, 94)));
+                infoGrid.add(createCompactInfoCard("💰 Montant", String.format("%.2f Fcfa", commande.getTotal()), new Color(34, 197, 94)));
                 infoGrid.add(createCompactInfoCard("⚡ Priorité", commande.getPriorite(), 
                     "urgente".equals(commande.getPriorite()) ? new Color(220, 38, 38) : new Color(107, 114, 128)));
                 infoGrid.add(createCompactInfoCard("📅 Réception", 
@@ -2405,4 +2413,5 @@ public class CommandeView extends JPanel {
         
         return button;
     }
+    
 }
